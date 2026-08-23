@@ -1,0 +1,14 @@
+{
+  "name": "@submitpulse/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@submitpulse/config": "workspace:*",
+    "@submitpulse/database": "workspace:*",
+    "@submitpulse/email": "workspace:*",
+    "@submitpulse/webhooks": "workspace:*"
+  },
+  "devDependencies": { "vitest": "^2.1.8" }
+}
