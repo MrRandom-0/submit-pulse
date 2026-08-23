@@ -1,0 +1,84 @@
+# Submit Pulse — Ingest Worker
+# Cloudflare Workers configuration for the public form ingestion service.
+
+name = "submitpulse-ingest"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ---------------------------------------------------------------------------
+# Environment variables
+# ---------------------------------------------------------------------------
+
+[vars]
+ENVIRONMENT = "development"
+
+# ---------------------------------------------------------------------------
+# Production environment overrides
+# ---------------------------------------------------------------------------
+
+[env.production]
+name = "submitpulse-ingest-production"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+
+# ---------------------------------------------------------------------------
+# D1 database binding
+# ---------------------------------------------------------------------------
+# INCOMPLETE: Replace database_id with your D1 database ID.
+# Create with: wrangler d1 create submitpulse-db
+
+[[d1_databases]]
+binding = "DB"
+database_name = "submitpulse-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "submitpulse-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# ---------------------------------------------------------------------------
+# KV namespace for idempotency keys
+# ---------------------------------------------------------------------------
+# INCOMPLETE: Replace id with your KV namespace ID.
+# Create with: wrangler kv namespace create IDEMPOTENCY_KV
+
+[[kv_namespaces]]
+binding = "IDEMPOTENCY_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_KV_PREVIEW_NAMESPACE_ID"
+
+[[env.production.kv_namespaces]]
+binding = "IDEMPOTENCY_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# ---------------------------------------------------------------------------
+# Cloudflare Queue (submission processing pipeline)
+# ---------------------------------------------------------------------------
+# INCOMPLETE: Replace queue_name once the queue is created.
+# Create with: wrangler queues create submitpulse-submissions
+
+[[queues.producers]]
+binding = "SUBMISSION_QUEUE"
+queue = "submitpulse-submissions"
+
+[[env.production.queues.producers]]
+binding = "SUBMISSION_QUEUE"
+queue = "submitpulse-submissions-production"
+
+# ---------------------------------------------------------------------------
+# Secrets (set via `wrangler secret put <NAME>`, never in plaintext here)
+# ---------------------------------------------------------------------------
+# SP_TURNSTILE_SECRET_KEY     — Cloudflare Turnstile secret key
+# SP_UPSTASH_REDIS_REST_URL   — Upstash Redis REST URL (for rate limiting)
+# SP_UPSTASH_REDIS_REST_TOKEN — Upstash Redis REST token
+
+# ---------------------------------------------------------------------------
+# Observability
+# ---------------------------------------------------------------------------
+
+[observability]
+enabled = true
+head_sampling_rate = 1

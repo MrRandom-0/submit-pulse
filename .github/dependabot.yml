@@ -1,0 +1,58 @@
+version: 2
+
+updates:
+  # npm / pnpm packages
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    groups:
+      # Batch Radix UI primitives together so the PR is reviewable at once.
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      # Batch Drizzle ORM packages.
+      drizzle:
+        patterns:
+          - "drizzle-*"
+      # Batch Vitest / testing toolchain.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      # Batch Playwright.
+      playwright:
+        patterns:
+          - "@playwright/test"
+          - "playwright"
+      # Batch TypeScript toolchain.
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+          - "tsx"
+    ignore:
+      # Major version bumps for Next.js require intentional upgrade work.
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+    labels:
+      - dependencies
+      - automated
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+      - automated
