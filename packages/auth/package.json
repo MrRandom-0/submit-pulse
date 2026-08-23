@@ -16,7 +16,7 @@
   "dependencies": {
     "@submitpulse/config": "workspace:*",
     "@submitpulse/database": "workspace:*",
-    "drizzle-orm": "^0.38.2",
+    "drizzle-orm": "^0.45.2",
     "@supabase/supabase-js": "^2.47.10"
   },
   "peerDependencies": {
