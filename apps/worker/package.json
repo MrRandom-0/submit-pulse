@@ -10,5 +10,5 @@
     "@submitpulse/email": "workspace:*",
     "@submitpulse/webhooks": "workspace:*"
   },
-  "devDependencies": { "vitest": "^2.1.8" }
+  "devDependencies": { "vitest": "^4.1.11" }
 }
