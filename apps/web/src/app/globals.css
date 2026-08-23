@@ -1,0 +1,87 @@
+/*
+ * Global stylesheet.
+ *
+ * The design tokens themselves live in @submitpulse/ui/theme.css as CSS custom
+ * properties. This file imports them and then layers Tailwind on top, so there
+ * is exactly one definition of every colour, space and motion value.
+ */
+
+@import "@submitpulse/ui/theme.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * Typography defaults. The font stacks resolve through the token variables so
+   * changing a family is a single-file edit in the token module.
+   */
+  html {
+    font-family: var(--sp-font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--sp-font-mono);
+    font-feature-settings: "liga" 0;
+  }
+
+  /*
+   * A single, consistent focus treatment. Using :focus-visible rather than
+   * :focus keeps the ring off mouse clicks while preserving it for keyboard
+   * and assistive-technology navigation.
+   */
+  :focus-visible {
+    outline: 2px solid var(--sp-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--sp-radius-sm);
+  }
+
+  /* Never remove focus styling outright — only replace it. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: var(--sp-primary);
+    color: white;
+  }
+
+  /*
+   * Respect the platform reduced-motion setting. Animations are neutralised
+   * rather than removed so JS that waits on transitionend still resolves.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Used by long-form marketing copy to cap measure for readability. */
+  .measure {
+    max-width: 68ch;
+  }
+
+  /*
+   * Horizontal gutter applied to every full-width section. Content touching the
+   * viewport edge reads as broken at any width, so this is the default rather
+   * than an opt-in.
+   */
+  .gutter {
+    padding-left: clamp(1.25rem, 5vw, 4rem);
+    padding-right: clamp(1.25rem, 5vw, 4rem);
+  }
+}
