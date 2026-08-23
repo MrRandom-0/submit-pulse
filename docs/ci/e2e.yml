@@ -1,0 +1,93 @@
+name: E2E tests (Playwright)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  PNPM_VERSION: "10.34.5"
+  NODE_VERSION: "22"
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Cache Playwright browser binaries between runs.
+      # The key includes the Playwright version so new browser installs don't
+      # reuse a stale cache.
+      - name: Get Playwright version
+        id: pw-version
+        run: |
+          VERSION=$(pnpm ls @playwright/test --filter ./apps/web --json 2>/dev/null \
+            | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8'); \
+                        const arr=JSON.parse(d); \
+                        const dep=arr[0]?.devDependencies?.['@playwright/test'] \
+                               ?? arr[0]?.dependencies?.['@playwright/test']; \
+                        console.log(dep?.version ?? 'unknown');")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cached browsers)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: apps/web
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run E2E tests
+        working-directory: apps/web
+        env:
+          # The Next.js dev server is started by webServer in playwright.config.ts.
+          # PLAYWRIGHT_BASE_URL can override it for a pre-deployed staging URL.
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL || '' }}
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: apps/web/playwright-report/
+          retention-days: 14

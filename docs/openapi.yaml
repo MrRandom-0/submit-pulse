@@ -1,0 +1,1734 @@
+openapi: "3.1.0"
+
+info:
+  title: Submit Pulse API
+  version: "1.0.0"
+  summary: Form ingestion and management API for Submit Pulse.
+  description: |
+    ## Base URLs
+
+    | Service | URL |
+    |---------|-----|
+    | Ingestion (public, Cloudflare Workers) | `https://api.submitpulse.com` |
+    | Management (app, **not yet implemented**) | `https://app.submitpulse.com` |
+
+    ## Implemented vs not-yet-implemented
+
+    The **ingestion endpoint** (`POST /v1/forms/{publicFormId}/submissions`) is
+    fully implemented and running. All management API paths listed below
+    (`/v1/forms`, `/v1/submissions`, `/v1/webhooks`, `/v1/api-keys`) are
+    **not yet implemented** — they are described here to document the intended
+    design surface. Each operation carries a `x-implementation-status` extension
+    indicating its current state.
+
+    ## Authentication
+
+    The ingestion endpoint requires **no authentication**. The form ID embedded
+    in the URL is a public, unguessable identifier — not a secret. Access control
+    is enforced by domain allowlists, rate limits, and CAPTCHA. Never add an API
+    key to client-side form submission code.
+
+    Management endpoints (when implemented) require an `Authorization: Bearer`
+    header carrying a long-lived API key (`submitpulse_live_…` or
+    `submitpulse_test_…`) or a short-lived installation token
+    (`submitpulse_setup_…`).
+
+  contact:
+    name: Submit Pulse Support
+    email: support@submitpulse.com
+    url: https://submitpulse.com
+
+  license:
+    name: Proprietary
+    url: https://submitpulse.com/terms
+
+servers:
+  - url: https://api.submitpulse.com
+    description: Public ingestion service (Cloudflare Workers, globally distributed)
+  - url: https://app.submitpulse.com
+    description: Management API (not yet implemented)
+
+# ---------------------------------------------------------------------------
+# Security schemes
+# ---------------------------------------------------------------------------
+
+components:
+  securitySchemes:
+
+    BearerApiKey:
+      type: http
+      scheme: bearer
+      description: |
+        Long-lived API key issued in the Submit Pulse dashboard.
+        Format: `submitpulse_live_<random>` (production) or `submitpulse_test_<random>` (test mode).
+        Keys are displayed exactly once at creation time. Only the SHA-256 hash
+        is stored; lost keys cannot be recovered.
+
+        **Not yet validated by any route handler.** The `api_keys` table exists
+        and the schema is fully designed, but no middleware checks this header.
+
+    InstallationToken:
+      type: http
+      scheme: bearer
+      description: |
+        Short-lived credential issued to an AI coding agent during form setup.
+        Format: `submitpulse_setup_<random>`.
+        Permitted operations: read form configuration, read active schema version,
+        generate integration code snippets, run a single test submission.
+        Forbidden operations: read submission data, access billing, mint new credentials.
+        Tokens expire (enforced by DB CHECK) and are limited to 10 uses by default.
+
+        **Not yet validated by any route handler.**
+
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
+
+  schemas:
+
+    # ---- Shared envelope --------------------------------------------------
+
+    SuccessEnvelope:
+      type: object
+      required: [ok, requestId, submissionId]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+          example: true
+        requestId:
+          type: string
+          format: uuid
+          description: Server-generated UUID for log correlation. Echoed in `x-submitpulse-request-id` response header.
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        submissionId:
+          type: string
+          description: Public submission identifier. Format `sub_<32-char-hex>`.
+          example: "sub_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+
+    ErrorEnvelope:
+      type: object
+      required: [ok, requestId, error]
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+          example: false
+        requestId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        error:
+          $ref: "#/components/schemas/ApiError"
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code in SCREAMING_SNAKE_CASE.
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: Human-readable description. Safe to display to end users.
+          example: "One or more fields are invalid"
+        fields:
+          type: array
+          description: Present only when `code` is `VALIDATION_ERROR`.
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      type: object
+      required: [field, code, message]
+      properties:
+        field:
+          type: string
+          description: The field name that failed validation.
+          example: "email"
+        code:
+          type: string
+          description: Field-level error code.
+          example: "INVALID_FORMAT"
+        message:
+          type: string
+          description: Human-readable field error message.
+          example: "Must be a valid email address"
+
+    ValidationError:
+      allOf:
+        - $ref: "#/components/schemas/ErrorEnvelope"
+        - type: object
+          properties:
+            error:
+              type: object
+              required: [code, message, fields]
+              properties:
+                code:
+                  type: string
+                  enum: ["VALIDATION_ERROR"]
+                message:
+                  type: string
+                fields:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/FieldError"
+
+    # ---- Management resources (not yet implemented) -----------------------
+
+    Form:
+      type: object
+      description: A form resource. Management API not yet implemented.
+      required: [id, publicId, name, workspaceId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        publicId:
+          type: string
+          description: Public form identifier. Format `fm_<random>`. Embedded in the submission endpoint URL.
+          example: "fm_a1b2c3d4e5f6a7b8c9d0e1f2"
+        name:
+          type: string
+          example: "Contact Us"
+        workspaceId:
+          type: string
+          format: uuid
+        paused:
+          type: boolean
+          description: When true the form rejects all submissions with 404 FORM_NOT_FOUND (to avoid leaking existence).
+          default: false
+        enforceOrigin:
+          type: boolean
+          default: false
+        captchaEnabled:
+          type: boolean
+          default: false
+        fileUploadsEnabled:
+          type: boolean
+          default: false
+        maxBodyBytes:
+          type: integer
+          description: Per-form body size limit in bytes. Absolute ceiling is 26214400 (25 MiB).
+          minimum: 1
+          maximum: 26214400
+          default: 1048576
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FormField"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FormField:
+      type: object
+      required: [name, type, required]
+      properties:
+        name:
+          type: string
+          description: Field name. Must match the key submitted in the request body exactly (case-sensitive).
+          example: "email"
+        type:
+          type: string
+          enum: [text, email, phone, number, url, date, textarea, select, multiselect, checkbox, hidden, file]
+        required:
+          type: boolean
+        label:
+          type: string
+          description: Display label shown in the dashboard. Not used for validation.
+        constraints:
+          type: object
+          description: Optional field-level validation constraints.
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+            minLength:
+              type: integer
+            maxLength:
+              type: integer
+            pattern:
+              type: string
+              description: Regular expression the value must match.
+            allowedValues:
+              type: array
+              items:
+                type: string
+              description: For `select` and `multiselect` types.
+            maxFileCount:
+              type: integer
+            maxFileSizeBytes:
+              type: integer
+            allowedMimeTypes:
+              type: array
+              items:
+                type: string
+
+    Submission:
+      type: object
+      description: A stored form submission. Management API not yet implemented.
+      required: [id, publicId, formId, workspaceId, data, spamVerdict, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        publicId:
+          type: string
+          description: Public submission identifier. Format `sub_<32-char-hex>`.
+          example: "sub_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+        formId:
+          type: string
+          format: uuid
+        workspaceId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+          description: The `requestId` from the 202 acceptance response.
+        data:
+          type: object
+          additionalProperties: true
+          description: The validated field values submitted.
+        unexpectedData:
+          type: object
+          additionalProperties: true
+          description: Fields present in the submission that are not in the form schema. Stored for drift detection.
+        spamVerdict:
+          type: string
+          enum: [clean, suspect, spam, blocked]
+        spamScore:
+          type: number
+          minimum: 0
+          maximum: 1
+        origin:
+          type: string
+          enum: [live, synthetic]
+        countryCode:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    WebhookEndpoint:
+      type: object
+      description: A customer-registered webhook destination. Management API not yet implemented.
+      required: [id, url, events, active, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+          description: HTTPS URL that receives webhook POST requests.
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - "submission.created"
+              - "submission.updated"
+              - "submission.spam"
+              - "submission.restored"
+              - "form.health.failed"
+              - "form.schema.changed"
+        active:
+          type: boolean
+        consecutiveFailures:
+          type: integer
+          default: 0
+        disabledAt:
+          type: string
+          format: date-time
+          description: Set when the endpoint is auto-disabled after sustained delivery failures.
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiKeyResource:
+      type: object
+      description: An API key resource (metadata only — the plaintext key is never returned after creation). Management API not yet implemented.
+      required: [id, name, keyPrefix, scopes, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Human-readable label for the key.
+        keyPrefix:
+          type: string
+          description: Non-secret prefix shown in the UI for identification. Example `submitpulse_live_a1b2`.
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Permission scopes granted to this key.
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null means the key does not expire.
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      required: [page, perPage, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        perPage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+        nextCursor:
+          type: string
+          nullable: true
+
+    HealthResponse:
+      type: object
+      required: [ok, service, ts]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        service:
+          type: string
+          example: "submitpulse"
+        ts:
+          type: string
+          format: date-time
+
+  # ---- Response headers ---------------------------------------------------
+
+  headers:
+    XSubmitpulseRequestId:
+      description: |
+        UUID echoing the server-assigned `requestId` from the response body.
+        Use this for log correlation. Header name: `x-submitpulse-request-id`.
+      schema:
+        type: string
+        format: uuid
+
+    XRateLimitLimit:
+      description: The rate limit ceiling for the most restrictive rule that fired.
+      schema:
+        type: integer
+
+    XRateLimitRemaining:
+      description: Requests remaining in the current window.
+      schema:
+        type: integer
+
+    XRateLimitReset:
+      description: Unix timestamp (seconds) when the window resets.
+      schema:
+        type: integer
+
+    XSubmitpulseSignature:
+      description: |
+        HMAC-SHA256 signature of the webhook payload. Format: `sha256=<hex>`.
+        Header name: `x-submitpulse-signature` (derived from `brand.wire.signatureHeader`).
+        Signing payload: `<timestamp>.<rawBody>`.
+      schema:
+        type: string
+        pattern: "^sha256=[0-9a-f]{64}$"
+        example: "sha256=a3f8c2d1e4b5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+
+    XSubmitpulseTimestamp:
+      description: |
+        Unix seconds when the webhook was emitted. Used for replay-window
+        verification: reject if `|now - timestamp| > 300`.
+        Header name: `x-submitpulse-timestamp` (derived from `brand.wire.timestampHeader`).
+      schema:
+        type: string
+        example: "1717228800"
+
+    XSubmitpulseDeliveryId:
+      description: |
+        UUID identifying this delivery attempt. Retries of the same event
+        produce a new delivery ID. Header name: `x-submitpulse-delivery-id`
+        (derived from `brand.wire.deliveryIdHeader`).
+      schema:
+        type: string
+        format: uuid
+
+  # ---- Reusable responses -------------------------------------------------
+
+  responses:
+    ValidationError400:
+      description: One or more fields failed server-side schema validation.
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "VALIDATION_ERROR"
+              message: "One or more fields are invalid"
+              fields:
+                - field: "email"
+                  code: "INVALID_FORMAT"
+                  message: "Must be a valid email address"
+                - field: "name"
+                  code: "REQUIRED"
+                  message: "Name is required"
+
+    BadRequest400:
+      description: Malformed request — bad JSON, unsupported Content-Type, honeypot triggered, or CAPTCHA failed.
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            captcha_failed:
+              summary: CAPTCHA token missing or invalid
+              value:
+                ok: false
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+                error:
+                  code: "CAPTCHA_FAILED"
+                  message: "Bot protection check failed. Please try again."
+            spam_blocked:
+              summary: Honeypot or explicit block rule
+              value:
+                ok: false
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+                error:
+                  code: "SUBMISSION_BLOCKED"
+                  message: "This submission was blocked"
+            bad_request:
+              summary: Generic malformed request
+              value:
+                ok: false
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "Invalid JSON body"
+
+    OriginRejected403:
+      description: The request Origin header is not in the form's allowed-origins list and origin enforcement is enabled.
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "ORIGIN_REJECTED"
+              message: "Submissions from this origin are not allowed"
+
+    Unauthorized401:
+      description: Missing or invalid API key or installation token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "UNAUTHORIZED"
+              message: "Invalid or missing API key"
+
+    NotFound404:
+      description: Form not found, or form is paused (both return 404 to avoid leaking existence).
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "FORM_NOT_FOUND"
+              message: "Form not found"
+
+    PayloadTooLarge413:
+      description: |
+        Request body exceeds the per-form limit or the absolute ceiling of 26 MiB.
+        Rejected before buffering when `Content-Length` is present and too large.
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "PAYLOAD_TOO_LARGE"
+              message: "Request body exceeds the size limit for this form"
+
+    RateLimited429:
+      description: |
+        Too many requests. Three independent limits are enforced in order:
+        1. Per-IP global: 60 req / 60 s
+        2. Per-IP per-form: 10 req / 300 s
+        3. Per-form ceiling: 500 req / 60 s
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "RATE_LIMITED"
+              message: "Too many submissions. Please try again later."
+
+    ServiceUnavailable503:
+      description: Transient internal error — database write failed or captcha provider is down. Retry with exponential backoff.
+      headers:
+        x-submitpulse-request-id:
+          $ref: "#/components/headers/XSubmitpulseRequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          example:
+            ok: false
+            requestId: "550e8400-e29b-41d4-a716-446655440000"
+            error:
+              code: "SERVICE_UNAVAILABLE"
+              message: "Service temporarily unavailable"
+
+# ---------------------------------------------------------------------------
+# Tags
+# ---------------------------------------------------------------------------
+
+tags:
+  - name: Ingestion
+    description: Public form submission endpoint. No authentication required.
+  - name: Health
+    description: Service health check.
+  - name: Forms
+    description: |
+      Form management. **Not yet implemented** — the `apps/web` dashboard uses
+      Next.js Server Actions; no public REST handler exists.
+  - name: Submissions
+    description: |
+      Submission access. **Not yet implemented.**
+  - name: Webhooks
+    description: |
+      Webhook endpoint management. **Not yet implemented.**
+  - name: API Keys
+    description: |
+      API key management. **Not yet implemented.**
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+
+paths:
+
+  # ---------- Health -------------------------------------------------------
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Service health check
+      tags: [Health]
+      description: |
+        Returns the service name and current ISO timestamp. No authentication required.
+        Not rate-limited. Use this to verify that the ingestion worker is reachable.
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                ok: true
+                service: "submitpulse"
+                ts: "2025-06-01T12:00:00.000Z"
+
+  # ---------- CORS preflight -----------------------------------------------
+
+  /v1/forms/{publicFormId}/submissions:
+    options:
+      operationId: preflightSubmission
+      summary: CORS preflight
+      tags: [Ingestion]
+      description: |
+        Handles `OPTIONS` preflight for cross-origin requests. Returns 204 with
+        permissive CORS headers. The actual POST enforces the form's origin
+        allowlist; the preflight does not. The preflight response includes:
+
+        - `Access-Control-Allow-Methods: POST, OPTIONS`
+        - `Access-Control-Allow-Headers: Content-Type, Idempotency-Key, X-Captcha-Response, x-submitpulse-request-id`
+        - `Access-Control-Max-Age: 86400`
+        - `Vary: Origin`
+        - `Access-Control-Allow-Origin: <reflected origin>` (when Origin header is present)
+        - `Access-Control-Allow-Credentials: true`
+      parameters:
+        - $ref: "#/components/parameters/publicFormId"
+      responses:
+        "204":
+          description: Preflight accepted.
+          headers:
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "POST, OPTIONS"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "Content-Type, Idempotency-Key, X-Captcha-Response, x-submitpulse-request-id"
+            Access-Control-Max-Age:
+              schema:
+                type: string
+                example: "86400"
+
+    # ---------- Submit -------------------------------------------------------
+
+    post:
+      operationId: createSubmission
+      summary: Submit a form
+      tags: [Ingestion]
+      x-implementation-status: implemented
+      description: |
+        Accepts a form submission, runs it through the ingestion pipeline, and
+        returns HTTP 202 when the submission has been persisted and enqueued for
+        async processing.
+
+        **Pipeline stages (in order):**
+        1. Request size guard — rejects bodies larger than the form's `max_body_bytes` or the absolute ceiling of 26 MiB.
+        2. Form lookup — resolves `publicFormId` to a form row.
+        3. Origin evaluation — enforces `form_domains` allowlist when `enforce_origin = true`.
+        4. Rate limiting — three independent limits (see `429` response).
+        5. Body parsing — supports JSON, URL-encoded, and multipart.
+        6. Schema validation — Zod-based, server-side, always re-run regardless of client-side validation.
+        7. CAPTCHA — Cloudflare Turnstile server-side verification when `captcha_enabled = true`.
+        8. Spam rules — honeypot check and inline signals. AI-based analysis is deferred to the queue consumer.
+        9. File validation — magic-byte checks and extension/MIME allowlist.
+        10. Persistence — write to D1 with idempotency key deduplication.
+        11. Enqueue — publish to Cloudflare Queue; email, webhooks, AI analysis, and file scanning happen in the consumer.
+
+        **Async processing note:** HTTP 202 means the submission is accepted and
+        durable, not that email or webhooks have been delivered. Those happen
+        asynchronously after the response is returned.
+
+        **CAPTCHA token:** When `captcha_enabled = true`, the Cloudflare Turnstile
+        token must be present. It can be in the request body as `cf-turnstile-response`,
+        `_captcha`, `g-recaptcha-response`, or `h-captcha-response`; or in the
+        `X-Captcha-Response` header. The token is stripped from the stored submission.
+
+      parameters:
+        - $ref: "#/components/parameters/publicFormId"
+        - in: header
+          name: Idempotency-Key
+          description: |
+            Client-generated unique string. Repeat requests with the same key and
+            the same `publicFormId` return the original 202 response and the
+            original `submissionId` without creating a duplicate. Keys are stored
+            for 24 hours. Do not reuse a key for a different, intentionally
+            distinct submission.
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+          example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+        - in: header
+          name: X-Captcha-Response
+          description: |
+            Cloudflare Turnstile token. Alternative to including the token in the
+            request body. The field name `cf-turnstile-response` in the body is
+            also accepted.
+          required: false
+          schema:
+            type: string
+        - in: header
+          name: x-submitpulse-synthetic
+          description: |
+            Mark this submission as a synthetic health-check. Accepted by the pipeline
+            but excluded from real submission counts, email notifications, and usage
+            billing. Set to `1` or `true`.
+          required: false
+          schema:
+            type: string
+            enum: ["1", "true"]
+
+      requestBody:
+        required: true
+        description: |
+          Field values to submit. Field names must match the form's declared schema
+          (case-sensitive). Extra fields are stored in `unexpected_data` and trigger
+          schema-drift detection — they are not rejected.
+
+          Choose the content type appropriate for your submission:
+          - `application/json` — preferred for JavaScript clients.
+          - `application/x-www-form-urlencoded` — standard HTML form encoding.
+          - `multipart/form-data` — required when the submission includes file uploads.
+            Do not set `Content-Type` manually; let the browser or `FormData` set it
+            with the boundary parameter.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Key/value map of field names to values. Nested objects are not supported.
+            examples:
+              simple_contact:
+                summary: Basic contact form
+                value:
+                  name: "Alice Johnson"
+                  email: "alice@example.com"
+                  message: "Hello, I'd like to learn more."
+              with_captcha:
+                summary: Contact form with Turnstile token
+                value:
+                  name: "Alice Johnson"
+                  email: "alice@example.com"
+                  message: "Hello"
+                  "cf-turnstile-response": "<turnstile-token-from-client>"
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+            examples:
+              url_encoded:
+                summary: URL-encoded submission
+                value:
+                  name: "Alice Johnson"
+                  email: "alice@example.com"
+                  message: "Hello"
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Text fields and file uploads. File fields use `type: string, format: binary`.
+            examples:
+              with_file:
+                summary: File upload submission
+                value:
+                  name: "Alice Johnson"
+                  email: "alice@example.com"
+                  resume: "<binary file content>"
+
+      responses:
+        "202":
+          description: |
+            Submission accepted. Persisted to the database and enqueued for async
+            processing. Email notifications and webhook deliveries happen after
+            this response is returned.
+          headers:
+            x-submitpulse-request-id:
+              $ref: "#/components/headers/XSubmitpulseRequestId"
+            Content-Type:
+              schema:
+                type: string
+                example: "application/json"
+            X-Content-Type-Options:
+              schema:
+                type: string
+                example: "nosniff"
+            Cache-Control:
+              schema:
+                type: string
+                example: "no-store"
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+              description: Reflected origin when the request origin is in the form's allowed list.
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: "true"
+            Access-Control-Expose-Headers:
+              schema:
+                type: string
+                example: "x-submitpulse-request-id"
+            Vary:
+              schema:
+                type: string
+                example: "Origin"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+              example:
+                ok: true
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+                submissionId: "sub_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+
+        "400":
+          description: |
+            Bad request. Multiple distinct error codes share this status:
+
+            | `error.code` | Cause |
+            |---|---|
+            | `VALIDATION_ERROR` | Required field missing, type mismatch, or constraint violated. `error.fields` array is present. |
+            | `CAPTCHA_FAILED` | Turnstile token absent or server-side verification rejected it. |
+            | `SUBMISSION_BLOCKED` | Honeypot field populated or an explicit block rule matched. |
+            | `BAD_REQUEST` | Malformed JSON, unsupported Content-Type, or invalid multipart. |
+          headers:
+            x-submitpulse-request-id:
+              $ref: "#/components/headers/XSubmitpulseRequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                validation_error:
+                  summary: Schema validation failure
+                  value:
+                    ok: false
+                    requestId: "550e8400-e29b-41d4-a716-446655440000"
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "One or more fields are invalid"
+                      fields:
+                        - field: "email"
+                          code: "INVALID_FORMAT"
+                          message: "Must be a valid email address"
+                captcha_failed:
+                  summary: CAPTCHA verification failure
+                  value:
+                    ok: false
+                    requestId: "550e8400-e29b-41d4-a716-446655440000"
+                    error:
+                      code: "CAPTCHA_FAILED"
+                      message: "Bot protection check failed. Please try again."
+                blocked:
+                  summary: Spam / honeypot block
+                  value:
+                    ok: false
+                    requestId: "550e8400-e29b-41d4-a716-446655440000"
+                    error:
+                      code: "SUBMISSION_BLOCKED"
+                      message: "This submission was blocked"
+
+        "403":
+          $ref: "#/components/responses/OriginRejected403"
+
+        "404":
+          $ref: "#/components/responses/NotFound404"
+
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge413"
+
+        "429":
+          $ref: "#/components/responses/RateLimited429"
+
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable503"
+
+  # ---------- Management: Forms (NOT YET IMPLEMENTED) ----------------------
+
+  /v1/forms:
+    get:
+      operationId: listForms
+      summary: List forms
+      tags: [Forms]
+      x-implementation-status: not_implemented
+      description: |
+        **Not yet implemented.** Returns all forms in the authenticated workspace.
+        The `apps/web` dashboard uses Next.js Server Actions; no public REST
+        handler exists for this operation.
+      security:
+        - BearerApiKey: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Paginated form list (not yet implemented).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Form"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+
+    post:
+      operationId: createForm
+      summary: Create form
+      tags: [Forms]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                fields:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/FormField"
+      responses:
+        "201":
+          description: Form created (not yet implemented).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+
+  /v1/forms/{formId}:
+    get:
+      operationId: getForm
+      summary: Get form
+      tags: [Forms]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+        - InstallationToken: []
+      parameters:
+        - $ref: "#/components/parameters/formId"
+      responses:
+        "200":
+          description: Form resource (not yet implemented).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+        "404":
+          $ref: "#/components/responses/NotFound404"
+
+    patch:
+      operationId: updateForm
+      summary: Update form
+      tags: [Forms]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      parameters:
+        - $ref: "#/components/parameters/formId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                paused:
+                  type: boolean
+                enforceOrigin:
+                  type: boolean
+                captchaEnabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated form (not yet implemented).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+        "404":
+          $ref: "#/components/responses/NotFound404"
+
+    delete:
+      operationId: deleteForm
+      summary: Delete form
+      tags: [Forms]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      parameters:
+        - $ref: "#/components/parameters/formId"
+      responses:
+        "204":
+          description: Deleted (not yet implemented).
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+        "404":
+          $ref: "#/components/responses/NotFound404"
+
+  # ---------- Management: Submissions (NOT YET IMPLEMENTED) ----------------
+
+  /v1/forms/{formId}/submissions:
+    get:
+      operationId: listSubmissions
+      summary: List submissions for a form
+      tags: [Submissions]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      parameters:
+        - $ref: "#/components/parameters/formId"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: spamVerdict
+          schema:
+            type: string
+            enum: [clean, suspect, spam, blocked]
+      responses:
+        "200":
+          description: Paginated submission list (not yet implemented).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Submission"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+
+  /v1/forms/{formId}/submissions/{submissionId}:
+    get:
+      operationId: getSubmission
+      summary: Get submission
+      tags: [Submissions]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      parameters:
+        - $ref: "#/components/parameters/formId"
+        - $ref: "#/components/parameters/submissionId"
+      responses:
+        "200":
+          description: Submission resource (not yet implemented).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+        "401":
+          $ref: "#/components/responses/Unauthorized401"
+        "404":
+          $ref: "#/components/responses/NotFound404"
+
+  # ---------- Management: Webhooks (NOT YET IMPLEMENTED) -------------------
+
+  /v1/webhooks:
+    get:
+      operationId: listWebhookEndpoints
+      summary: List webhook endpoints
+      tags: [Webhooks]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Webhook endpoint list (not yet implemented).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WebhookEndpoint"
+
+    post:
+      operationId: createWebhookEndpoint
+      summary: Create webhook endpoint
+      tags: [Webhooks]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - "submission.created"
+                      - "submission.updated"
+                      - "submission.spam"
+                      - "submission.restored"
+                      - "form.health.failed"
+                      - "form.schema.changed"
+      responses:
+        "201":
+          description: Webhook endpoint created (not yet implemented).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpoint"
+
+  /v1/webhooks/{webhookId}:
+    delete:
+      operationId: deleteWebhookEndpoint
+      summary: Delete webhook endpoint
+      tags: [Webhooks]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.**"
+      security:
+        - BearerApiKey: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted (not yet implemented).
+
+  # ---------- Management: API Keys (NOT YET IMPLEMENTED) -------------------
+
+  /v1/api-keys:
+    get:
+      operationId: listApiKeys
+      summary: List API keys
+      tags: [API Keys]
+      x-implementation-status: not_implemented
+      description: |
+        **Not yet implemented.** Returns metadata for all API keys in the workspace.
+        The plaintext key is never returned after initial creation.
+
+        API keys have optional `scopes` (a `string[]` stored as JSONB).
+        The scope vocabulary is not yet formally defined.
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: API key list (not yet implemented).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApiKeyResource"
+
+    post:
+      operationId: createApiKey
+      summary: Create API key
+      tags: [API Keys]
+      x-implementation-status: not_implemented
+      description: |
+        **Not yet implemented.** Creates a new API key. The plaintext key is
+        returned exactly once in the response. Only the SHA-256 hash is stored.
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                expiresAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        "201":
+          description: API key created. Plaintext key returned once (not yet implemented).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiKeyResource"
+                  - type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Full plaintext API key. Shown once; store it securely.
+                        example: "submitpulse_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+
+  /v1/api-keys/{keyId}/revoke:
+    post:
+      operationId: revokeApiKey
+      summary: Revoke API key
+      tags: [API Keys]
+      x-implementation-status: not_implemented
+      description: "**Not yet implemented.** Immediately invalidates the key."
+      security:
+        - BearerApiKey: []
+      parameters:
+        - in: path
+          name: keyId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Key revoked (not yet implemented).
+
+# ---------------------------------------------------------------------------
+# Parameters (reusable)
+# ---------------------------------------------------------------------------
+
+  parameters:
+    publicFormId:
+      in: path
+      name: publicFormId
+      required: true
+      description: |
+        The form's public identifier. Format `fm_<random>`. Found in the
+        Submit Pulse dashboard next to the endpoint URL. This is a public,
+        unguessable identifier — not a secret. Do not treat it as an API key.
+      schema:
+        type: string
+        pattern: "^fm_[A-Za-z0-9]{8,}$"
+        example: "fm_a1b2c3d4e5f6a7b8"
+
+    formId:
+      in: path
+      name: formId
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    submissionId:
+      in: path
+      name: submissionId
+      required: true
+      schema:
+        type: string
+
+# ---------------------------------------------------------------------------
+# Webhooks (OpenAPI 3.1 top-level webhooks field)
+# ---------------------------------------------------------------------------
+
+webhooks:
+
+  submission.created:
+    post:
+      summary: New submission accepted
+      description: |
+        Fired asynchronously by the queue consumer after a submission is accepted,
+        persisted, and passes the post-acceptance processing pipeline. Not fired for
+        synthetic (health-check) submissions.
+
+        **Delivery headers present on every webhook request:**
+        - `x-submitpulse-signature: sha256=<hex>` — HMAC-SHA256 over `<timestamp>.<rawBody>`
+        - `x-submitpulse-timestamp: <unix-seconds>` — for replay-window verification
+        - `x-submitpulse-delivery-id: <uuid>` — unique per delivery attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["submission.created"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [submissionId, publicId, origin, spamVerdict, fields, submittedAt]
+                  properties:
+                    submissionId:
+                      type: string
+                      format: uuid
+                    publicId:
+                      type: string
+                      example: "sub_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+                    origin:
+                      type: string
+                      example: "live"
+                    spamVerdict:
+                      type: string
+                    fields:
+                      type: object
+                      additionalProperties: true
+                    submittedAt:
+                      type: string
+                      format: date-time
+            example:
+              version: "v1"
+              event: "submission.created"
+              createdAt: "2025-06-01T12:00:00.000Z"
+              workspaceId: "ws-uuid-here"
+              formId: "form-uuid-here"
+              data:
+                submissionId: "sub-internal-uuid"
+                publicId: "sub_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+                origin: "live"
+                spamVerdict: "clean"
+                fields:
+                  name: "Alice Johnson"
+                  email: "alice@example.com"
+                  message: "Hello"
+                submittedAt: "2025-06-01T12:00:00.000Z"
+      responses:
+        "200":
+          description: Delivery acknowledged. Any 2xx response is treated as success.
+
+  submission.updated:
+    post:
+      summary: Submission updated
+      description: Fired when a submission's status, tags, assignment, or notes change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["submission.updated"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [submissionId, publicId, changes, updatedAt]
+                  properties:
+                    submissionId:
+                      type: string
+                    publicId:
+                      type: string
+                    changes:
+                      type: object
+                      additionalProperties: true
+                      description: Only the fields that changed and their new values.
+                    updatedAt:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Delivery acknowledged.
+
+  submission.spam:
+    post:
+      summary: Submission classified as spam or blocked
+      description: Fired by the async queue consumer after AI-based spam analysis finishes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["submission.spam"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [submissionId, publicId, spamVerdict, spamScore, signals, detectedAt]
+                  properties:
+                    submissionId:
+                      type: string
+                    publicId:
+                      type: string
+                    spamVerdict:
+                      type: string
+                      enum: [spam, blocked]
+                    spamScore:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    signals:
+                      type: array
+                      items:
+                        type: object
+                        required: [code, label, weight]
+                        properties:
+                          code:
+                            type: string
+                          label:
+                            type: string
+                          weight:
+                            type: number
+                          evidence:
+                            type: string
+                    detectedAt:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Delivery acknowledged.
+
+  submission.restored:
+    post:
+      summary: Spam submission restored to clean
+      description: Fired when a workspace member manually restores a spam-classified submission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["submission.restored"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [submissionId, publicId, restoredBy, restoredAt]
+                  properties:
+                    submissionId:
+                      type: string
+                    publicId:
+                      type: string
+                    restoredBy:
+                      type: string
+                      description: "`user` or `system`"
+                    restoredAt:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Delivery acknowledged.
+
+  form.health.failed:
+    post:
+      summary: Health monitor run failed
+      description: Fired when a Pulse Monitor synthetic health-check run fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["form.health.failed"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [healthMonitorId, healthRunId, failureStage, failureReason, consecutiveFailures, failedAt]
+                  properties:
+                    healthMonitorId:
+                      type: string
+                    healthRunId:
+                      type: string
+                    failureStage:
+                      type: string
+                    failureReason:
+                      type: string
+                    consecutiveFailures:
+                      type: integer
+                    incidentId:
+                      type: string
+                      description: Present when a new incident was opened for this failure.
+                    failedAt:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Delivery acknowledged.
+
+  form.schema.changed:
+    post:
+      summary: Schema drift detected
+      description: Fired when a field change (rename, removal, type change) is detected relative to the stored schema version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, event, createdAt, workspaceId, formId, data]
+              properties:
+                version:
+                  type: string
+                  enum: ["v1"]
+                event:
+                  type: string
+                  enum: ["form.schema.changed"]
+                createdAt:
+                  type: string
+                  format: date-time
+                workspaceId:
+                  type: string
+                  format: uuid
+                formId:
+                  type: string
+                  format: uuid
+                data:
+                  type: object
+                  required: [schemaDriftEventId, kind, detectedAt]
+                  properties:
+                    schemaDriftEventId:
+                      type: string
+                    kind:
+                      type: string
+                      description: Type of drift, e.g. `field_renamed`, `field_removed`, `field_added`.
+                    fieldName:
+                      type: string
+                    previousDefinition:
+                      type: object
+                      additionalProperties: true
+                    observedDefinition:
+                      type: object
+                      additionalProperties: true
+                    detectedAt:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Delivery acknowledged.
