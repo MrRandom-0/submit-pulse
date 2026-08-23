@@ -1,0 +1,12 @@
+export type { EmailProvider, EmailMessage, SendResult } from "./provider.js";
+export { ResendProvider } from "./resend-provider.js";
+export { ConsoleEmailProvider } from "./console-provider.js";
+export { deriveEmailIdempotencyKey, isAlreadySent } from "./idempotency.js";
+export type { IdempotencyKeyParams } from "./idempotency.js";
+export { renderNotification } from "./templates/notification.js";
+export { renderAutoresponder } from "./templates/autoresponder.js";
+export { renderEmailVerification } from "./templates/email-verification.js";
+export { renderWorkspaceInvitation } from "./templates/workspace-invitation.js";
+export { renderBillingNotice } from "./templates/billing-notice.js";
+export { renderIncidentAlert } from "./templates/incident-alert.js";
+export { escapeHtml, escapePlainText, escapeAttr } from "./templates/escape.js";
