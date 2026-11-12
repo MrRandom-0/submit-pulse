@@ -1,12 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Button,
-  EmptyState,
-} from "@submitpulse/ui";
+import { Card, CardContent, Badge, Button } from "@submitpulse/ui";
 import type { Actor } from "@submitpulse/auth/permissions";
 import { can } from "@submitpulse/auth/permissions";
 import { PermissionGate } from "@/components/dashboard/PermissionGate";

@@ -3,7 +3,7 @@
  * Sent when Pulse detects a form failure and when it recovers.
  */
 
-import { brand } from "@submitpulse/config";
+
 import { escapeHtml, escapePlainText } from "./escape.js";
 import { htmlLayout, plainTextLayout } from "./layout.js";
 

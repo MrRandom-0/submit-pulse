@@ -1,17 +1,5 @@
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Badge,
-  StatusDot,
-  Button,
-  Skeleton,
-  SkeletonText,
-  EmptyState,
-} from "@submitpulse/ui";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, StatusDot, Button, EmptyState } from "@submitpulse/ui";
 import { PLANS } from "@submitpulse/config";
 import { getOverviewMetrics } from "@/lib/dashboard-data";
 import { MetricCard } from "@/components/dashboard/MetricCard";

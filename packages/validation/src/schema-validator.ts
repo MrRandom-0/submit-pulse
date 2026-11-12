@@ -206,7 +206,7 @@ function buildFieldSchema(
       schema = z
         .string()
         .regex(
-          /^\d{4}-\d{2}-\d{2}(T[\d:.Z+\-]+)?$/,
+          /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]+)?$/,
           "Invalid date format — use ISO 8601",
         );
       break;

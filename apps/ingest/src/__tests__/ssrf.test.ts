@@ -88,7 +88,9 @@ describe("SSRF — link-local", () => {
   });
 
   it("rejects 169.254.169.254 (AWS metadata)", async () => {
-    await expectSsrfRejection("https://169.254.169.254/", "LINK_LOCAL");
+    // The guard checks cloud metadata endpoints before the link-local
+    // range, so this IP reports CLOUD_METADATA rather than LINK_LOCAL.
+    await expectSsrfRejection("https://169.254.169.254/", "CLOUD_METADATA");
   });
 
   it("rejects fe80:: (IPv6 link-local)", async () => {

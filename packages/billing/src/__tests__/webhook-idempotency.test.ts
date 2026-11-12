@@ -40,8 +40,6 @@ interface StripeEventShape {
   readonly data: { readonly object: Record<string, unknown> };
 }
 
-type HandlerDispatch = (event: StripeEventShape, db: WebhookDb) => Promise<WebhookResult>;
-
 /** Minimal in-process event dispatcher — mirrors StripeWebhookHandler internals. */
 async function dispatchEvent(event: StripeEventShape, db: WebhookDb): Promise<WebhookResult> {
   const alreadyProcessed = await db.hasProcessedEvent(event.id);

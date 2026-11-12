@@ -73,7 +73,7 @@ export function createMcpServer(server: McpServerInterface): McpServerInterface 
    * Shared token extraction and verification for all tool calls.
    * Throws McpAuthError if the token is missing or invalid.
    */
-  async function withAuth<I, O>(
+  async function withAuth<O>(
     meta: RequestMeta,
     fn: (token: Awaited<ReturnType<typeof verifyInstallationToken> & { ok: true }>["token"]) => Promise<O>,
   ): Promise<O> {

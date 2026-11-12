@@ -1,4 +1,4 @@
-import Link from "next/link";
+
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
 import { PLANS, ORDERED_PLANS } from "@submitpulse/config";
 import type { Actor } from "@submitpulse/auth/permissions";
 import { can } from "@submitpulse/auth/permissions";
-import { PermissionGate } from "@/components/dashboard/PermissionGate";
+
 import { cn } from "@submitpulse/ui";
 
 const FIXTURE_ACTOR: Actor = {

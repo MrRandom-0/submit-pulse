@@ -9,6 +9,7 @@
 import {
   createContext,
   useContext,
+  type JSX,
   type ReactNode,
 } from "react";
 import type { SubmitPulseClient } from "@submitpulse/browser";

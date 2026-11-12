@@ -6,14 +6,7 @@
  * reviewed before publishing.
  */
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Button,
-} from "@submitpulse/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@submitpulse/ui";
 import { listAdminIncidents } from "@/lib/admin-data";
 
 export const metadata = { title: "Incidents · Admin" };

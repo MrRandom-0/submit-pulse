@@ -154,7 +154,6 @@ export class DevBypassCaptchaVerifier implements CaptchaVerifier {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async verify(
     _token: string,
     _remoteIp?: string,

@@ -9,8 +9,6 @@
  * test accepts typed values rather than live DB rows.
  */
 
-import type { Actor } from "@submitpulse/auth/permissions";
-import type { WorkspaceRole } from "@submitpulse/auth/permissions";
 import { seededRandom } from "./random.js";
 
 // ---------------------------------------------------------------------------

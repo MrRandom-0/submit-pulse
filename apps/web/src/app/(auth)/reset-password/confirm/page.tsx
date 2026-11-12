@@ -24,7 +24,7 @@ import {
 import {
   PASSWORD_MIN_LENGTH,
   checkPasswordSync,
-} from "@submitpulse/auth";
+} from "@submitpulse/auth/password-policy";
 
 /* -------------------------------------------------------------------------- */
 /* Schema                                                                      */

@@ -6,17 +6,9 @@
  */
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "@submitpulse/ui";
+import { Button } from "@submitpulse/ui";
 import { getPlatformOverview } from "@/lib/admin-data";
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 function formatCents(cents: number): string {
   return new Intl.NumberFormat("en-US", {

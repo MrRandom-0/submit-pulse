@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { brand } from "@submitpulse/config/brand";
-import { CodeBlock, Badge, cn } from "@submitpulse/ui";
+import { CodeBlock, cn } from "@submitpulse/ui";
 import { GUIDES, GUIDE_SLUGS, NAV_GROUPS, type GuideSlug } from "../content";
 
 // ---------------------------------------------------------------------------

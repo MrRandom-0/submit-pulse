@@ -181,7 +181,6 @@ export function createClient(opts: CreateClientOptions): SubmitPulseClient {
     const useMultipart = hasFileValues(data as Record<string, unknown>);
 
     let attempt = 0;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       // Each attempt gets its own AbortController for the timeout.
       // We recreate it per-attempt so a timed-out first attempt does not

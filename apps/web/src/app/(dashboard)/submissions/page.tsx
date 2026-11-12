@@ -26,7 +26,7 @@ import type { Actor } from "@submitpulse/auth/permissions";
 import { can } from "@submitpulse/auth/permissions";
 import { listSubmissions } from "@/lib/dashboard-data";
 import { SubmissionRow } from "@/components/dashboard/SubmissionRow";
-import { PermissionGate } from "@/components/dashboard/PermissionGate";
+
 import type { SubmissionSummary, SubmissionStatus, SpamVerdict } from "@/lib/dashboard-data";
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ function BulkActionDialog({ action, count, onConfirm, onCancel }: BulkActionDial
 export default function SubmissionsPage() {
   const actor = FIXTURE_ACTOR;
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");

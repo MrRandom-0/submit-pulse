@@ -75,7 +75,7 @@ export class OriginError extends SubmitPulseError {
 export class NetworkError extends SubmitPulseError {
   readonly kind = "network" as const;
   /** The original fetch rejection, if available. */
-  readonly cause: unknown;
+  override readonly cause: unknown;
 
   constructor(message: string, cause: unknown) {
     super(message);

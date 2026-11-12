@@ -11,7 +11,7 @@ import { PLANS } from "@submitpulse/config";
 import { getOverviewMetrics } from "@/lib/dashboard-data";
 import { UsageMeter } from "@/components/dashboard/UsageMeter";
 import type { Actor } from "@submitpulse/auth/permissions";
-import { can } from "@submitpulse/auth/permissions";
+
 import { PermissionGate } from "@/components/dashboard/PermissionGate";
 
 const FIXTURE_ACTOR: Actor = {

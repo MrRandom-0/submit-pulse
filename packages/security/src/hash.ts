@@ -58,7 +58,6 @@ export function timingSafeEqual(a: string, b: string): boolean {
   const bb = new TextEncoder().encode(b);
   let diff = 0;
   for (let i = 0; i < ab.length; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     diff |= ab[i]! ^ bb[i]!;
   }
   return diff === 0;

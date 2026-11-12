@@ -26,7 +26,7 @@ export function CopyEndpoint({
       toast({ title: "Copied!", description: "Endpoint URL copied to clipboard." });
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "destructive" });
+      toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "error" });
     }
   };
 

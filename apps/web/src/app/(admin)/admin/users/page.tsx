@@ -5,16 +5,8 @@
  * Metadata only: email, workspace count, sign-in time, suspension status.
  */
 
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Button,
-  EmptyState,
-} from "@submitpulse/ui";
+
+import { Card, CardContent, Badge, EmptyState } from "@submitpulse/ui";
 import { listAdminUsers } from "@/lib/admin-data";
 import { SuspendUserButton } from "./SuspendUserButton";
 

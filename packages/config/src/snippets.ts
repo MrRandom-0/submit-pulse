@@ -184,30 +184,6 @@ function reactSnippet(input: SnippetInput): string {
     ? `// FormData sets its own Content-Type with boundary`
     : `"Content-Type": "application/json",`;
 
-  const turnstileDecl = captchaEnabled
-    ? `  const [turnstileToken, setTurnstileToken] = useState("");
-
-  // Load Turnstile once and bind it to #turnstile-container.
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-    script.async = true;
-    document.body.appendChild(script);
-    script.onload = () => {
-      (window as unknown as { turnstile: { render: (el: string, opts: Record<string, unknown>) => void } }).turnstile.render(
-        "#turnstile-container",
-        {
-          sitekey: "<YOUR_TURNSTILE_SITE_KEY>",
-          callback: (token: string) => setTurnstileToken(token),
-        },
-      );
-    };
-    return () => { document.body.removeChild(script); };
-  }, []);
-
-`
-    : "";
-
   const turnstileGuard = captchaEnabled
     ? `\n    if (!turnstileToken) { setError("Please complete the CAPTCHA."); return; }\n`
     : "";

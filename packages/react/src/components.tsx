@@ -8,6 +8,7 @@
 
 import {
   type FormEvent,
+  type JSX,
   type ReactNode,
   type ButtonHTMLAttributes,
   type HTMLAttributes,

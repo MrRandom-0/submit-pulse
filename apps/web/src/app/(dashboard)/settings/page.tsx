@@ -11,7 +11,7 @@ import {
 } from "@submitpulse/ui";
 import type { Actor } from "@submitpulse/auth/permissions";
 import { can } from "@submitpulse/auth/permissions";
-import { PermissionGate } from "@/components/dashboard/PermissionGate";
+
 
 const FIXTURE_ACTOR: Actor = {
   userId: "user-001",

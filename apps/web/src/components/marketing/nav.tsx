@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, cn } from "@submitpulse/ui";
+import { Button } from "@submitpulse/ui";
 
 import Link from "next/link";
 import { useState } from "react";

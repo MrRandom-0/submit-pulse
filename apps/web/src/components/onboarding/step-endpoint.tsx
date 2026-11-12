@@ -59,7 +59,7 @@ interface CodePanelProps {
   readonly copyLabel: string;
 }
 
-function CodePanel({ code, language = "text", caption, copyLabel }: CodePanelProps) {
+function CodePanel({ code, language: _language = "text", caption, copyLabel }: CodePanelProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {caption && (

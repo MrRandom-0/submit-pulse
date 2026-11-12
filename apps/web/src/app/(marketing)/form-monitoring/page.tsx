@@ -1,4 +1,4 @@
-import { Button, Badge, Card, CardContent, CardHeader, CardTitle, CardDescription } from "@submitpulse/ui";
+import { Button, Badge, Card, CardContent } from "@submitpulse/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { brand } from "@submitpulse/config/brand";

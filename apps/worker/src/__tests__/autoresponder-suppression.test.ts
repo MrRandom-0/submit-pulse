@@ -10,7 +10,7 @@
  * with real DB fixtures when the DB layer is wired up.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // We test the guard logic by extracting it as a pure helper to avoid
 // coupling the test to the DB stub in the handler.

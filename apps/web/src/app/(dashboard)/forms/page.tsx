@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, EmptyState, Skeleton } from "@submitpulse/ui";
+import { Button, EmptyState } from "@submitpulse/ui";
 import { listForms } from "@/lib/dashboard-data";
 import { FormCard } from "@/components/dashboard/FormCard";
 import type { Actor } from "@submitpulse/auth/permissions";

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Metadata } from "next";
+
 
 import {
   Button,
@@ -180,7 +180,7 @@ export default function LoginPage() {
         toast({
           title: "OAuth error",
           description: json.error ?? "Could not start OAuth flow.",
-          variant: "destructive",
+          variant: "error",
         });
         return;
       }
@@ -189,7 +189,7 @@ export default function LoginPage() {
       toast({
         title: "OAuth error",
         description: "Something went wrong.",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setOauthLoading(null);

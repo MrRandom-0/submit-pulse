@@ -8,13 +8,28 @@ Tagline: "Forms that never fail silently."
 
 ## Current status
 
-**This codebase has never had its dependencies installed, has never been typechecked, linted, tested, or built. No database has been provisioned. No external credentials exist. The product is not running anywhere.**
+**First verification pass completed 2026-11-12** (Node 24, pnpm 10.34.5): dependencies install cleanly (`pnpm-lock.yaml` is now committed), and typecheck, lint, unit tests, and the web build have all been run for the first time. Results below are observed, not aspirational. **No database has been provisioned. No external credentials exist. The product is not running anywhere.**
 
-Specifically:
+Verification results:
 
-- The npm registry was firewalled during development. `pnpm install` has never completed. No `node_modules` exist.
-- TypeScript compilation has never run. Type errors may exist.
-- Zero tests have produced any result. The test files, Vitest config, Playwright specs (22 marked `test.fixme()`), and k6 load-test scripts all exist as authored intent only.
+- **Install:** `pnpm install` completes for all 20 workspace projects.
+- **Typecheck:** 12 of 20 packages typecheck clean. **36 errors remain** across 8 packages (web 22, billing 6, ingest 3, and 1 each in auth, mcp, testing, ui, worker). Down from 256 errors at first run; the remaining ones are per-site code issues, not configuration.
+- **Lint:** ESLint did not exist in this repo at all (no binary, no config); a shared flat config now lives at `eslint.config.mjs`. **16 of 17 lint tasks pass.** `apps/web` fails on exactly 3 unused variables, each of which marks logic that is computed but never wired in (see Known issues) — they were left in place deliberately rather than deleted to silence the linter.
+- **Unit tests:** 211 tests run, **210 pass, 1 fails**. The failure is a genuine semantic disagreement (see Known issues). The billing and config test suites (77 tests) previously never ran — they had test files but no test script; they are wired now and pass. `apps/web` has **zero unit tests**; its `e2e/` Playwright specs are `test.fixme()` stubs and have still never been executed (browsers not installed). The k6 load-test scripts remain authored intent only.
+- **Build:** Only `apps/web` has a build script (every package is consumed as TypeScript source). Webpack compilation **succeeds**; `next build` then stops at its lint gate on the same 3 variables above, before reaching its type-check gate. The production build has not yet completed end to end.
+- **CI:** `.github/workflows/ci.yml` runs install + typecheck + lint + test on push/PR. It is expected to be red until the remaining items below are resolved — that is the point of the baseline.
+
+Known issues found by the first verification pass:
+
+- **Origin allowlist semantics conflict (the 1 failing test):** `packages/security/src/origin.ts` and its documentation say an `includeSubdomains` entry still matches its own base host exactly; the test `rejects wildcard.io itself when only the sub entry has includeSubdomains` in `apps/ingest/src/__tests__/origin.test.ts` asserts the opposite. One of them must change; this is a product decision, so both were left untouched.
+- **Unwired OAuth PKCE:** `apps/web/src/app/(auth)/auth/callback/route.ts` reads the `codeVerifier` from the PKCE cookie but never passes it to the token exchange (the file's own comment describes the intended call). This is the largest single reason web lint stays red.
+- **Unwired permission gates:** the integrations and team pages compute `canManage` / `canInvite` permission checks but never use them to gate the UI.
+- **Undefined name:** `apps/web/src/app/(admin)/admin/workspaces/WorkspaceActions.tsx` references `FIXTURE_OPS_EMAIL`, which is not defined anywhere (2 type errors).
+- **Unsafe casts in billing:** `packages/billing/src/webhook-handler.ts` casts `Record<string, unknown>` directly to Stripe object types in 5 places (TS2352); they need `unknown` intermediates and runtime shape checks.
+- **`exactOptionalPropertyTypes` friction:** several call sites pass explicit `undefined` to optional properties (auth, ingest, mcp, testing, web layouts/CodeBlock). Each needs a per-site decision: omit the key, or widen the target type.
+
+Still true from the original assessment:
+
 - The schema in `packages/database/src/schema/` defines 34 tables and 96 RLS policies. The SQL migration has never been applied to any Postgres instance.
 - All external services (Supabase, Stripe, Resend, Cloudflare Turnstile, Upstash Redis, Cloudflare R2) are referenced by interface only. Dev-bypass drivers exist for captcha and email; everything else is a stub or placeholder.
 - The dashboard renders hardcoded fixture data. No database queries are wired to any UI route.
@@ -49,7 +64,7 @@ submit-pulse/
 ├── apps/
 │   ├── ingest/          # Cloudflare Workers — public form submission endpoint (Hono)
 │   ├── mcp/             # MCP server for AI coding agent integration
-│   ├── web/             # Next.js 14 App Router — dashboard, marketing, onboarding, admin
+│   ├── web/             # Next.js 15 App Router — dashboard, marketing, onboarding, admin
 │   └── worker/          # Cloudflare Workers queue consumer — notifications, webhooks
 ├── packages/
 │   ├── analytics/       # Aggregation helpers (pure functions, no DB calls)

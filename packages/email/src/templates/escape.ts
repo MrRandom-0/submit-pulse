@@ -37,6 +37,7 @@ export function escapeHtml(value: unknown): string {
 export function escapePlainText(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value)
+    // eslint-disable-next-line no-control-regex -- stripping control characters is the purpose of this sanitizer
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
     .replace(/\r\n?/g, "\n");
 }
@@ -48,7 +49,7 @@ export function escapePlainText(value: unknown): string {
  */
 export function escapeAttr(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value).replace(/[^\w\s\-\.]/g, (ch) => {
+  return String(value).replace(/[^\w\s\-.]/g, (ch) => {
     const code = ch.codePointAt(0);
     return code !== undefined ? `&#${code};` : "";
   });

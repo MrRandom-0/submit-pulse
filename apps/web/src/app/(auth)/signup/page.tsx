@@ -21,8 +21,8 @@ import {
   Spinner,
   useToast,
 } from "@submitpulse/ui";
-import { brand } from "@submitpulse/config";
-import { PASSWORD_MIN_LENGTH } from "@submitpulse/auth";
+
+import { PASSWORD_MIN_LENGTH } from "@submitpulse/auth/password-policy";
 
 /* -------------------------------------------------------------------------- */
 /* Schema                                                                      */
@@ -98,13 +98,13 @@ export default function SignupPage() {
         toast({
           title: "OAuth error",
           description: json.error ?? "Could not start OAuth flow.",
-          variant: "destructive",
+          variant: "error",
         });
         return;
       }
       window.location.href = json.redirectUrl;
     } catch {
-      toast({ title: "OAuth error", description: "Something went wrong.", variant: "destructive" });
+      toast({ title: "OAuth error", description: "Something went wrong.", variant: "error" });
     } finally {
       setOauthLoading(null);
     }

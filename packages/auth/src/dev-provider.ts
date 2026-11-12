@@ -335,7 +335,6 @@ export class DevProvider implements AuthProvider {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const account = this.accounts.get(key)!;
     return { ok: true, data: this.#createSession(account) };
   }

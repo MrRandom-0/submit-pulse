@@ -2,25 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-  Badge,
-  StatusDot,
-  Button,
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-  useToast,
-} from "@submitpulse/ui";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Badge, StatusDot, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, useToast } from "@submitpulse/ui";
 import type { Actor } from "@submitpulse/auth/permissions";
 import { can } from "@submitpulse/auth/permissions";
 import { formEndpoint } from "@submitpulse/config";
