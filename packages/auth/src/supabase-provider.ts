@@ -174,7 +174,9 @@ export class SupabaseProvider implements AuthProvider {
     const { error } = await this.#client.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: undefined },
+      // No emailRedirectTo override: sign-up uses the provider's default
+      // redirect so the enumeration-prevention flow above stays uniform.
+      options: {},
     });
 
     if (error) {

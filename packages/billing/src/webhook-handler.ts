@@ -157,7 +157,7 @@ export class StripeWebhookHandler {
   // ---------------------------------------------------------------------------
 
   async #handleCheckoutCompleted(event: StripeEvent): Promise<void> {
-    const session = event.data.object as CheckoutSession;
+    const session = eventObjectAs<CheckoutSession>(event);
     if (session.mode !== "subscription") return;
     // The subscription.created event carries the full subscription object and
     // is always emitted before checkout.session.completed, so the subscription
@@ -167,7 +167,7 @@ export class StripeWebhookHandler {
   }
 
   async #handleSubscriptionUpsert(event: StripeEvent): Promise<void> {
-    const sub = event.data.object as StripeSub;
+    const sub = eventObjectAs<StripeSub>(event);
     const item = sub.items.data[0];
     if (!item) return;
 
@@ -196,7 +196,7 @@ export class StripeWebhookHandler {
   }
 
   async #handleSubscriptionDeleted(event: StripeEvent): Promise<void> {
-    const sub = event.data.object as StripeSub;
+    const sub = eventObjectAs<StripeSub>(event);
     const item = sub.items.data[0];
     if (!item) return;
 
@@ -219,7 +219,7 @@ export class StripeWebhookHandler {
   }
 
   async #handleInvoicePaid(event: StripeEvent): Promise<void> {
-    const inv = event.data.object as StripeInvoice;
+    const inv = eventObjectAs<StripeInvoice>(event);
     await this.#db.recordInvoicePaid({
       stripeCustomerId: inv.customer,
       stripeInvoiceId: inv.id,
@@ -231,7 +231,7 @@ export class StripeWebhookHandler {
   }
 
   async #handleInvoicePaymentFailed(event: StripeEvent): Promise<void> {
-    const inv = event.data.object as StripeInvoice;
+    const inv = eventObjectAs<StripeInvoice>(event);
     await this.#db.recordInvoicePaymentFailed({
       stripeCustomerId: inv.customer,
       stripeInvoiceId: inv.id,
@@ -331,6 +331,17 @@ interface StripeEvent {
   readonly id: string;
   readonly type: string;
   readonly data: { readonly object: Record<string, unknown> };
+}
+
+/**
+ * Reinterpret the generic event object as the concrete shape for the
+ * event being handled. The payload reaches this point only after HMAC
+ * signature verification (see processWebhook), and the interfaces below
+ * are minimal projections of Stripe's wire format — this helper is the
+ * single place where the wire format is asserted into them.
+ */
+function eventObjectAs<T>(event: StripeEvent): T {
+  return event.data.object as unknown as T;
 }
 
 interface StripeSub {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Route } from "next";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,7 +61,7 @@ function OAuthButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="secondary"
       className="w-full"
       disabled={loading}
       onClick={onClick}
@@ -144,7 +145,9 @@ export default function LoginPage() {
         setServerError(json.error ?? "Invalid email or password.");
         return;
       }
-      router.push(nextUrl.startsWith("/") ? nextUrl : "/overview");
+      // `next` is a runtime-supplied internal path (guarded to a leading
+      // "/" above the fallback), so it cannot be a literal Route type.
+      router.push((nextUrl.startsWith("/") ? nextUrl : "/overview") as Route);
     } catch {
       setServerError("Something went wrong. Please try again.");
     }

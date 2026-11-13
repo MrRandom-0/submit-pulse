@@ -278,10 +278,13 @@ export async function handleSendTestSubmission(
     );
   }
 
+  const requestId = response.headers.get(brand.wire.requestIdHeader);
   return {
     accepted: response.ok,
     statusCode: response.status,
-    requestId: response.headers.get(brand.wire.requestIdHeader) ?? undefined,
+    // exactOptionalPropertyTypes: omit the property entirely when the
+    // endpoint did not send the request-id header.
+    ...(requestId !== null ? { requestId } : {}),
   };
 }
 

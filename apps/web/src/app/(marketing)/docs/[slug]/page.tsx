@@ -166,13 +166,13 @@ export default async function GuidePageRoute({
                       // Code fence blocks inside body text
                       if (para.startsWith("```")) {
                         const lines = para.split("\n");
-                        const lang = lines[0].slice(3);
+                        const lang = lines[0]?.slice(3) ?? "";
                         const code = lines.slice(1, lines.length - 1).join("\n");
                         return (
                           <CodeBlock
                             key={pi}
                             code={code}
-                            language={lang || undefined}
+                            {...(lang ? { language: lang } : {})}
                             copyable
                             className="my-4"
                           />
@@ -193,9 +193,9 @@ export default async function GuidePageRoute({
                 {section.code && (
                   <CodeBlock
                     code={section.code}
-                    language={section.language}
+                    {...(section.language ? { language: section.language } : {})}
                     copyable
-                    caption={section.codeCaption}
+                    {...(section.codeCaption ? { caption: section.codeCaption } : {})}
                     maxHeight={520}
                   />
                 )}

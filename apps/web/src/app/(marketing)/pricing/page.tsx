@@ -136,7 +136,7 @@ export default function PricingPage() {
                             : `${plan.quotas.historyDays}d`}
                         </span>
                       </li>
-                      {plan.quotas.fileStorageMb > 0 && (
+                      {(plan.quotas.fileStorageMb ?? 0) > 0 && (
                         <li className="flex justify-between">
                           <span className="text-text-muted">File storage</span>
                           <span className="font-medium text-text-primary">
@@ -144,7 +144,7 @@ export default function PricingPage() {
                           </span>
                         </li>
                       )}
-                      {plan.quotas.healthTestsPerMonth > 0 && (
+                      {(plan.quotas.healthTestsPerMonth ?? 0) > 0 && (
                         <li className="flex justify-between">
                           <span className="text-text-muted">Health tests/mo</span>
                           <span className="font-medium text-text-primary">

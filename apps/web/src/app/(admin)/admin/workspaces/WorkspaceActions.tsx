@@ -19,7 +19,7 @@ import {
   Label,
   Input,
 } from "@submitpulse/ui";
-import type { AdminWorkspace } from "@/lib/admin-data";
+import { FIXTURE_OPS_EMAIL, type AdminWorkspace } from "@/lib/admin-data";
 import { auditedAction } from "@/components/admin/auditedAction";
 
 interface WorkspaceActionsProps {

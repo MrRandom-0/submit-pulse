@@ -14,7 +14,9 @@ export async function sha256Hex(input: string): Promise<string> {
 
 /** Compute the hex-encoded SHA-256 digest of raw bytes. */
 export async function sha256HexBytes(input: Uint8Array): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", input);
+  // WebCrypto requires an ArrayBuffer-backed view; copy so callers may
+  // pass views over shared buffers (Uint8Array<ArrayBufferLike>).
+  const buf = await crypto.subtle.digest("SHA-256", new Uint8Array(input));
   return bufToHex(buf);
 }
 

@@ -88,7 +88,9 @@ export class StripeProvider implements BillingProvider {
     const res = await fetch(`${STRIPE_API_BASE}${path}`, {
       method,
       headers,
-      body: bodyStr,
+      // exactOptionalPropertyTypes: omit `body` entirely for bodyless
+      // requests instead of passing an explicit undefined.
+      ...(bodyStr !== undefined ? { body: bodyStr } : {}),
     });
 
     const json = (await res.json()) as Record<string, unknown>;

@@ -117,7 +117,7 @@ export default async function AdminOverviewPage() {
           Quick actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[
+          {([
             {
               href: "/admin/users",
               label: "Search users",
@@ -158,7 +158,7 @@ export default async function AdminOverviewPage() {
               label: "Audit log",
               desc: "All admin actions",
             },
-          ].map((item) => (
+          ] as const).map((item) => (
             <Link
               key={item.href}
               href={item.href}

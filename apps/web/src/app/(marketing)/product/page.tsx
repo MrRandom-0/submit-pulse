@@ -168,7 +168,7 @@ export default function ProductPage() {
             Everything in one place
           </h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
+            {([
               { title: "Submission Inbox", body: "Searchable, exportable submission history with raw payload viewer.", href: "/features" },
               { title: "Spam Protection", body: "Multi-layer filtering: honeypot, velocity, domain reputation, ML.", href: "/spam-protection" },
               { title: "Delivery Pipeline", body: "Email, webhooks, and integrations with durable retry queues.", href: "/webhooks" },
@@ -178,7 +178,7 @@ export default function ProductPage() {
               { title: "AI Repair", body: "Generated repair prompts when something breaks.", href: "/ai-builders" },
               { title: "Agency Dashboard", body: "Client workspaces and aggregate reporting.", href: "/agencies" },
               { title: "Developer API", body: "REST API and typed SDK for programmatic access.", href: "/developers" },
-            ].map((item) => (
+            ] as const).map((item) => (
               <Card key={item.title} interactive>
                 <CardHeader>
                   <CardTitle className="text-base">{item.title}</CardTitle>

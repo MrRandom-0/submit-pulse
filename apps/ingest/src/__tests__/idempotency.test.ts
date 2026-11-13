@@ -27,7 +27,11 @@ class InMemoryKV {
   }
 
   async put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void> {
-    this.store.set(key, { value, expiry: opts?.expirationTtl });
+    this.store.set(key, {
+      value,
+      // exactOptionalPropertyTypes: omit `expiry` when no TTL was given.
+      ...(opts?.expirationTtl !== undefined ? { expiry: opts.expirationTtl } : {}),
+    });
   }
 
   clear(): void {

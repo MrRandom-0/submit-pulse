@@ -12,6 +12,14 @@ import { createForm } from "./actions";
 // Zod schema
 // ---------------------------------------------------------------------------
 
+// The field types offered by the type <select> below; the schema validates
+// against the same list so form values always satisfy the FieldType
+// contract that createForm() expects.
+const FIELD_TYPES = [
+  "text", "email", "tel", "url", "textarea",
+  "file", "select", "checkbox", "number",
+] as const;
+
 const fieldSchema = z.object({
   id: z.string(),
   name: z
@@ -19,7 +27,7 @@ const fieldSchema = z.object({
     .min(1, "Field name is required")
     .regex(/^[a-z_][a-z0-9_]*$/, "Use lowercase letters, digits, and underscores only"),
   label: z.string().min(1, "Label is required"),
-  type: z.string().min(1, "Type is required"),
+  type: z.enum(FIELD_TYPES, { message: "Type is required" }),
   required: z.boolean(),
 });
 
@@ -48,11 +56,6 @@ type DetailsFormValues = z.infer<typeof detailsSchema>;
 // ---------------------------------------------------------------------------
 // Field row
 // ---------------------------------------------------------------------------
-
-const FIELD_TYPES = [
-  "text", "email", "tel", "url", "textarea",
-  "file", "select", "checkbox", "number",
-] as const;
 
 interface FieldRowProps {
   readonly index: number;

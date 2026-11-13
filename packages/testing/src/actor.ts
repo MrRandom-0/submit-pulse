@@ -43,6 +43,11 @@ export function makeActor(
       `ws-${n.toString(16).padStart(8, "0")}-0000-4000-8000-000000000000`,
     role,
     isPlatformAdmin: options.isPlatformAdmin ?? false,
-    credentialScopes: options.credentialScopes,
+    // exactOptionalPropertyTypes: omit the property entirely when no
+    // credential scopes were given (an absent property means "session
+    // actor, not a scoped credential" to the permission checks).
+    ...(options.credentialScopes !== undefined
+      ? { credentialScopes: options.credentialScopes }
+      : {}),
   };
 }

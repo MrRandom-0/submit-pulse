@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import {
   Dialog,
@@ -21,7 +22,7 @@ import type { ReactNode } from "react";
 // ---------------------------------------------------------------------------
 
 interface NavItem {
-  href: string;
+  href: Route;
   label: string;
   icon: string;
 }
@@ -64,7 +65,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/overview"
           className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-sm"
-          onClick={onNavigate}
+          {...(onNavigate ? { onClick: onNavigate } : {})}
         >
           <span className="h-7 w-7 rounded-lg bg-[linear-gradient(135deg,var(--sp-primary),var(--sp-primary-deep))] shadow-sm flex items-center justify-center text-white text-sm font-bold select-none">
             SP
@@ -83,7 +84,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <li key={item.href}>
               <Link
                 href={item.href}
-                onClick={onNavigate}
+                {...(onNavigate ? { onClick: onNavigate } : {})}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",

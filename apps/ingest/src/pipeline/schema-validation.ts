@@ -53,6 +53,16 @@ function toFieldDefinition(row: FormFieldRow): FieldDefinition {
   };
 }
 
+/**
+ * Multipart file parts are File objects at runtime, but the installed
+ * @cloudflare/workers-types declares FormData entry values as `string`
+ * only — so the instanceof check needs the value widened to the true
+ * runtime union before it typechecks.
+ */
+function isFileEntry(value: string | File): value is File {
+  return value instanceof File;
+}
+
 export type ParsedBody = {
   readonly payload: Record<string, unknown>;
   /** File entries from multipart — passed to the file-validation stage. */
@@ -116,7 +126,7 @@ export async function parseBody(
     const files = new Map<string, File[]>();
 
     for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
+      if (isFileEntry(value)) {
         const existing = files.get(key) ?? [];
         existing.push(value);
         files.set(key, existing);

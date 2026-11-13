@@ -215,7 +215,8 @@ export function EndpointCard({
               <h3 className="text-sm font-semibold text-text-primary mb-3">
                 Request body
               </h3>
-              <Tabs defaultValue={endpoint.requestTabs[0].label}>
+              {/* The enclosing condition guarantees requestTabs is non-empty. */}
+              <Tabs defaultValue={endpoint.requestTabs[0]!.label}>
                 <TabsList>
                   {endpoint.requestTabs.map((tab) => (
                     <TabsTrigger key={tab.label} value={tab.label}>

@@ -7,7 +7,7 @@ import React, {
   useCallback,
 } from "react";
 import type { BuilderId } from "@submitpulse/config";
-import type { TemplateId, TemplateField, FormTemplate } from "./templates";
+import type { TemplateId, TemplateField, FormTemplate, FieldType } from "./templates";
 import { TEMPLATES } from "./templates";
 import { generatePublicFormId } from "../../lib/public-id";
 
@@ -21,7 +21,7 @@ export interface FormField {
   readonly id: string;
   name: string;
   label: string;
-  type: string;
+  type: FieldType;
   required: boolean;
 }
 

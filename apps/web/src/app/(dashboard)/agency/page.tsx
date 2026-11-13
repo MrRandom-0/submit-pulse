@@ -127,11 +127,12 @@ export default async function AgencyPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {(
           [
-            { label: "Clients", value: overview.totalClients },
-            { label: "Total forms", value: overview.totalForms },
+            { label: "Clients", value: overview.totalClients, accent: undefined },
+            { label: "Total forms", value: overview.totalForms, accent: undefined },
             {
               label: "Submissions this month",
               value: overview.totalSubmissionsThisMonth.toLocaleString("en-US"),
+              accent: undefined,
             },
             {
               label: "Clients with issues",

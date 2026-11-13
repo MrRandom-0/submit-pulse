@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { brand } from "@submitpulse/config";
 import { cn } from "@submitpulse/ui";
@@ -24,7 +25,7 @@ import { FIXTURE_OPS_EMAIL } from "@/lib/admin-data";
 // ---------------------------------------------------------------------------
 
 interface AdminNavItem {
-  href: string;
+  href: Route;
   label: string;
   icon: string;
   section?: string;
@@ -82,7 +83,7 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/admin"
           className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-sm"
-          onClick={onNavigate}
+          {...(onNavigate ? { onClick: onNavigate } : {})}
         >
           <span className="h-7 w-7 rounded-md bg-amber-500 flex items-center justify-center text-white text-xs font-bold select-none">
             OP
@@ -117,7 +118,7 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
               )}
               <Link
                 href={item.href}
-                onClick={onNavigate}
+                {...(onNavigate ? { onClick: onNavigate } : {})}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",

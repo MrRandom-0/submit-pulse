@@ -18,7 +18,7 @@ function fmtDate(d: Date | null) {
 }
 
 const PLAN_V: Record<string, "neutral" | "info" | "success" | "warning"> = { free: "neutral", starter: "info", pro: "success", enterprise: "warning" };
-const STATUS_V: Record<string, "success" | "danger" | "warning" | "neutral"> = { active: "success", trialing: "info", past_due: "danger", canceled: "neutral", unpaid: "danger" };
+const STATUS_V: Record<string, "success" | "danger" | "warning" | "neutral" | "info"> = { active: "success", trialing: "info", past_due: "danger", canceled: "neutral", unpaid: "danger" };
 
 export default async function AdminSubscriptionsPage() {
   const subs = await listAdminSubscriptions();

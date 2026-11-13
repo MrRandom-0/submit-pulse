@@ -39,8 +39,9 @@ export function CodeBlock({
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      const timer = setTimeout(() => setCopied(false), 2000);
-      return () => clearTimeout(timer);
+      // No cleanup is returned: this is an event handler, not an effect,
+      // so a returned function would be discarded anyway.
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API unavailable — fail silently
     }

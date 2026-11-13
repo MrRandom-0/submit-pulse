@@ -164,7 +164,7 @@ export default function SignupPage() {
             <Button
               key={p}
               type="button"
-              variant="outline"
+              variant="secondary"
               className="w-full"
               disabled={oauthLoading !== null}
               onClick={() => void onOAuth(p)}

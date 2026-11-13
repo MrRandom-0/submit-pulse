@@ -16,15 +16,12 @@ export const metadata: Metadata = {
   description: `Learn how to integrate ${brand.name} into any website or framework.`,
 };
 
-interface SectionCard {
-  readonly title: string;
-  readonly description: string;
-  readonly href: string;
-  readonly badge: string;
-  readonly badgeVariant: "info" | "success" | "warning" | "neutral";
-}
-
-const TOP_SECTIONS: readonly SectionCard[] = [
+// Kept as a literal (`as const`) array rather than annotated with the
+// bare `Route` type: bare Route only covers static routes, while
+// "/docs/quickstart" instantiates the dynamic /docs/[slug] route — the
+// literal types let <Link> validate each href (including dynamic ones)
+// at the usage site.
+const TOP_SECTIONS = [
   {
     title: "Quickstart",
     description: "Send your first submission in under three minutes.",
@@ -56,7 +53,7 @@ const TOP_SECTIONS: readonly SectionCard[] = [
     badge: "Security",
     badgeVariant: "neutral",
   },
-];
+] as const;
 
 export default function DocsLandingPage() {
   return (
@@ -185,7 +182,7 @@ export default function DocsLandingPage() {
           Reference
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
+          {([
             {
               title: "Webhook events",
               body: "Six event types: submission.created, submission.updated, submission.spam, submission.restored, form.health.failed, form.schema.changed.",
@@ -196,12 +193,7 @@ export default function DocsLandingPage() {
               body: "HMAC-SHA256 signing with replay-window protection. Worked examples in Node.js and Python.",
               href: "/docs/webhook-reference",
             },
-            {
-              title: "OpenAPI specification",
-              body: "Machine-readable OpenAPI 3.1 spec covering all endpoints, schemas, and webhook events.",
-              href: `${brand.domains.api}/openapi.yaml`,
-            },
-          ].map((item) => (
+          ] as const).map((item) => (
             <Link
               key={item.title}
               href={item.href}
@@ -219,6 +211,25 @@ export default function DocsLandingPage() {
               </Card>
             </Link>
           ))}
+          {/* The spec lives on the API domain — an external URL, so a plain
+              anchor rather than a typed-route <Link>. */}
+          <a
+            href={`${brand.domains.api}/openapi.yaml`}
+            className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-card"
+          >
+            <Card interactive className="h-full">
+              <CardHeader>
+                <CardTitle className="text-base group-hover:text-primary transition-colors">
+                  OpenAPI specification
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Machine-readable OpenAPI 3.1 spec covering all endpoints, schemas, and webhook events.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </a>
         </div>
       </section>
     </div>

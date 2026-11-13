@@ -276,7 +276,7 @@ export default async function OverviewPage() {
           Quick actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[
+          {([
             { href: "/forms/new", label: "New form", desc: "Start accepting submissions" },
             { href: "/submissions", label: "View inbox", desc: "Browse all submissions" },
             { href: "/pulse", label: "Pulse monitor", desc: "Check health status" },
@@ -285,7 +285,7 @@ export default async function OverviewPage() {
             { href: "/billing", label: "Upgrade plan", desc: "Unlock more features" },
             { href: "/team", label: "Invite teammate", desc: "Collaborate on forms" },
             { href: "/settings", label: "Settings", desc: "Configure workspace" },
-          ].map((action) => (
+          ] as const).map((action) => (
             <Link
               key={action.href}
               href={action.href}
