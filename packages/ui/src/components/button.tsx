@@ -9,7 +9,7 @@ import { Spinner } from "./spinner";
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2",
-    "font-medium rounded transition-colors duration-fast ease-standard",
+    "font-medium rounded transition-all duration-fast ease-standard",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface",
     "disabled:pointer-events-none disabled:opacity-50",
     "select-none",
@@ -18,9 +18,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-white hover:bg-primary-hover active:opacity-90",
+          "bg-[linear-gradient(180deg,var(--sp-primary),var(--sp-primary-deep))] text-white shadow-sm hover:brightness-[1.08] hover:shadow-md active:opacity-90",
         secondary:
-          "bg-surface border border-border text-text-primary hover:bg-background hover:border-border-strong",
+          "bg-surface border border-border text-text-primary shadow-xs hover:bg-background hover:border-border-strong",
         ghost:
           "bg-transparent text-text-secondary hover:bg-background hover:text-text-primary",
         danger:

@@ -141,6 +141,7 @@ const semanticLight = {
   borderStrong:     graphite[300],
   primary:          indigo[600],
   primaryHover:     indigo[700],
+  primaryDeep:      indigo[800],
   success:          emerald[600],
   warning:          amber[600],
   danger:           red[600],
@@ -161,6 +162,7 @@ const semanticDark = {
   borderStrong:     graphite[600],
   primary:          indigo[400],
   primaryHover:     indigo[300],
+  primaryDeep:      indigo[500],
   success:          emerald[400],
   warning:          amber[400],
   danger:           red[400],
@@ -280,11 +282,11 @@ const spacing = {
  */
 const radii = {
   none:  "0px",
-  sm:    "3px",   // inset badges, tight UI chrome
-  base:  "6px",   // inputs, buttons
-  md:    "8px",   // cards, dropdowns
-  lg:    "12px",  // modals, drawers
-  xl:    "16px",  // sheet overlays
+  sm:    "6px",   // inset badges, tight UI chrome
+  base:  "8px",   // inputs, buttons
+  md:    "12px",  // cards, dropdowns
+  lg:    "16px",  // modals, drawers
+  xl:    "20px",  // sheet overlays
   full:  "9999px", // status pill, avatar
 } as const;
 
@@ -302,11 +304,11 @@ const shadows = {
   /** Hairline shadow for floating micro-elements (tooltips). */
   xs:   "0 1px 2px 0 rgba(10, 10, 17, 0.05)",
   /** Default card elevation — a subtle lift against the page. */
-  sm:   "0 1px 3px 0 rgba(10, 10, 17, 0.07), 0 1px 2px -1px rgba(10, 10, 17, 0.06)",
+  sm:   "0 1px 3px 0 rgba(10, 10, 17, 0.08), 0 4px 12px -4px rgba(10, 10, 17, 0.06)",
   /** Elevated panels: side drawer edge, dropdown menus. */
-  md:   "0 4px 8px -2px rgba(10, 10, 17, 0.08), 0 2px 4px -2px rgba(10, 10, 17, 0.04)",
+  md:   "0 8px 20px -6px rgba(10, 10, 17, 0.12), 0 2px 6px -2px rgba(10, 10, 17, 0.05)",
   /** Modals and popovers. */
-  lg:   "0 12px 24px -4px rgba(10, 10, 17, 0.10), 0 4px 8px -4px rgba(10, 10, 17, 0.06)",
+  lg:   "0 24px 48px -12px rgba(10, 10, 17, 0.18), 0 6px 16px -6px rgba(10, 10, 17, 0.08)",
   /**
    * Focus ring shadow — supplements the outline for high-contrast clarity.
    * Applied via the focusRing semantic token.

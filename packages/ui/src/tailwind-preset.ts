@@ -64,6 +64,7 @@ const preset: TailwindPreset = {
         // Brand / action
         primary:          v("primary"),
         "primary-hover":  v("primary-hover"),
+        "primary-deep":   v("primary-deep"),
 
         // Status
         success:          v("success"),

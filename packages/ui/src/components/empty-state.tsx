@@ -21,7 +21,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         {...props}
       >
         {icon && (
-          <div className="flex items-center justify-center size-12 rounded-md bg-background border border-border text-text-muted mb-2">
+          <div className="flex items-center justify-center size-14 rounded-full bg-primary/10 border border-primary/15 text-primary mb-2">
             {icon}
           </div>
         )}

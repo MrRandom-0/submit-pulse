@@ -66,7 +66,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-sm"
           onClick={onNavigate}
         >
-          <span className="h-7 w-7 rounded-md bg-primary flex items-center justify-center text-white text-sm font-bold select-none">
+          <span className="h-7 w-7 rounded-lg bg-[linear-gradient(135deg,var(--sp-primary),var(--sp-primary-deep))] shadow-sm flex items-center justify-center text-white text-sm font-bold select-none">
             SP
           </span>
           <span className="font-semibold text-text-primary text-sm">
@@ -89,8 +89,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
                   active
-                    ? "bg-primary text-white"
-                    : "text-text-secondary hover:bg-surface hover:text-text-primary",
+                    ? "bg-primary/10 text-primary font-semibold shadow-[inset_3px_0_0_0_var(--sp-primary)]"
+                    : "text-text-secondary hover:bg-background hover:text-text-primary",
                 )}
               >
                 <span className="text-base leading-none" aria-hidden>
@@ -128,7 +128,7 @@ function Topbar({ onMobileMenuOpen }: { onMobileMenuOpen: () => void }) {
   const [searchValue, setSearchValue] = useState("");
 
   return (
-    <header className="h-14 border-b border-border bg-background flex items-center px-4 gap-3 flex-shrink-0">
+    <header className="h-14 border-b border-border bg-surface flex items-center px-4 gap-3 flex-shrink-0">
       {/* Mobile menu trigger */}
       <button
         type="button"
@@ -268,7 +268,7 @@ function Topbar({ onMobileMenuOpen }: { onMobileMenuOpen: () => void }) {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
           )}
         >
-          <span className="h-7 w-7 rounded-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center select-none">
+          <span className="h-7 w-7 rounded-full bg-[linear-gradient(135deg,var(--sp-primary),var(--sp-primary-deep))] text-white text-xs font-semibold flex items-center justify-center select-none">
             AJ
           </span>
           <span className="text-sm font-medium text-text-primary hidden md:block">
@@ -354,7 +354,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <aside
-        className="hidden lg:flex w-56 flex-col flex-shrink-0 border-r border-border bg-background"
+        className="hidden lg:flex w-56 flex-col flex-shrink-0 border-r border-border bg-surface"
         aria-label="Sidebar"
       >
         <SidebarContent />

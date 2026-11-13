@@ -32,6 +32,7 @@
   --sp-border-strong:     #d1d1dc;
   --sp-primary:           #4f46e5;
   --sp-primary-hover:     #4338ca;
+  --sp-primary-deep:      #3730a3;
   --sp-success:           #059669;
   --sp-warning:           #d97706;
   --sp-danger:            #dc2626;
@@ -66,22 +67,22 @@
 
   /* --- Border radii --- */
   --sp-radius-none: 0px;
-  --sp-radius-sm:   3px;
-  --sp-radius-base: 6px;
-  --sp-radius-md:   8px;
-  --sp-radius-lg:   12px;
-  --sp-radius-xl:   16px;
+  --sp-radius-sm:   6px;
+  --sp-radius-base: 8px;
+  --sp-radius-md:   12px;
+  --sp-radius-lg:   16px;
+  --sp-radius-xl:   20px;
   --sp-radius-full: 9999px;
 
   /* --- Shadows --- */
   --sp-shadow-none:       none;
   --sp-shadow-xs:         0 1px 2px 0 rgba(10, 10, 17, 0.05);
-  --sp-shadow-sm:         0 1px 3px 0 rgba(10, 10, 17, 0.07),
-                          0 1px 2px -1px rgba(10, 10, 17, 0.06);
-  --sp-shadow-md:         0 4px 8px -2px rgba(10, 10, 17, 0.08),
-                          0 2px 4px -2px rgba(10, 10, 17, 0.04);
-  --sp-shadow-lg:         0 12px 24px -4px rgba(10, 10, 17, 0.10),
-                          0 4px 8px -4px rgba(10, 10, 17, 0.06);
+  --sp-shadow-sm:         0 1px 3px 0 rgba(10, 10, 17, 0.08),
+                          0 4px 12px -4px rgba(10, 10, 17, 0.06);
+  --sp-shadow-md:         0 8px 20px -6px rgba(10, 10, 17, 0.12),
+                          0 2px 6px -2px rgba(10, 10, 17, 0.05);
+  --sp-shadow-lg:         0 24px 48px -12px rgba(10, 10, 17, 0.18),
+                          0 6px 16px -6px rgba(10, 10, 17, 0.08);
   --sp-shadow-focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.35);
 
   /* --- Typography — font families --- */
@@ -161,6 +162,7 @@
   --sp-border-strong:     #565668;
   --sp-primary:           #818cf8;
   --sp-primary-hover:     #a5b4fc;
+  --sp-primary-deep:      #6366f1;
   --sp-success:           #34d399;
   --sp-warning:           #fbbf24;
   --sp-danger:            #f87171;
@@ -191,6 +193,7 @@
     --sp-border-strong:     #565668;
     --sp-primary:           #818cf8;
     --sp-primary-hover:     #a5b4fc;
+  --sp-primary-deep:      #6366f1;
     --sp-success:           #34d399;
     --sp-warning:           #fbbf24;
     --sp-danger:            #f87171;

@@ -254,7 +254,11 @@ export default function HomePage() {
         aria-labelledby="hero-heading"
         className="relative overflow-hidden border-b border-border bg-background"
       >
-        <div className="mx-auto max-w-7xl px-6 pt-24 pb-20 lg:px-8 lg:pt-32 lg:pb-28">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(720px_300px_at_50%_0%,var(--sp-primary),transparent)] opacity-[0.08]"
+        />
+        <div className="relative mx-auto max-w-7xl px-6 pt-24 pb-20 lg:px-8 lg:pt-32 lg:pb-28">
           <div className="mx-auto max-w-3xl text-center">
             <Badge variant="neutral" className="mb-6">
               Form infrastructure for AI-generated websites
@@ -280,7 +284,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-16 rounded-card border border-border bg-surface p-6 shadow-card">
+          <div className="mt-16 rounded-card border border-border bg-surface p-6 shadow-elevated ring-1 ring-primary/10">
             <PipelineDiagram />
           </div>
         </div>
