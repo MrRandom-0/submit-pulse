@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -117,7 +117,7 @@ function StrengthMeter({ password }: { password: string }) {
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function ResetPasswordConfirmPage() {
+function ResetPasswordConfirmForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
@@ -267,5 +267,30 @@ export default function ResetPasswordConfirmPage() {
         </Link>
       </CardFooter>
     </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Page export                                                                 */
+/* -------------------------------------------------------------------------- */
+
+// `useSearchParams()` in the form above opts the component into client-side
+// rendering for the search-param read, so Next.js requires it to sit under
+// a Suspense boundary for the page to prerender. The page shell (this
+// fallback card) is static; the form streams in at request time.
+export default function ResetPasswordConfirmPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card>
+          <CardHeader>
+            <CardTitle>Set a new password</CardTitle>
+            <CardDescription>Loading…</CardDescription>
+          </CardHeader>
+        </Card>
+      }
+    >
+      <ResetPasswordConfirmForm />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
 import Link from "next/link";
@@ -99,7 +99,7 @@ function OAuthButton({
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") ?? "/overview";
@@ -386,5 +386,30 @@ export default function LoginPage() {
         </p>
       </CardFooter>
     </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Page export                                                                 */
+/* -------------------------------------------------------------------------- */
+
+// `useSearchParams()` in the form above opts the component into client-side
+// rendering for the search-param read, so Next.js requires it to sit under
+// a Suspense boundary for the page to prerender. The page shell (this
+// fallback card) is static; the form streams in at request time.
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign in to {brand.name}</CardTitle>
+            <CardDescription>Loading…</CardDescription>
+          </CardHeader>
+        </Card>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
