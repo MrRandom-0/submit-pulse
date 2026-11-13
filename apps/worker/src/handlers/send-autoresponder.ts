@@ -49,6 +49,9 @@ const PLATFORM_SENDER_ADDRESSES = new Set<string>([
 export async function handleSendAutoresponder(job: Job<unknown>): Promise<void> {
   const payload = job.payload as SendAutoresponderPayload;
   const { submissionId, autoresponderId, idempotencyKey } = payload;
+  // Kept: consumed by the idempotency check once the delivery-row query
+  // lands (see the IDEMPOTENCY TODO below); part of the payload contract now.
+  void idempotencyKey;
 
   // ── SPAM / SYNTHETIC GUARD ──────────────────────────────────────────────
   // Load the submission from DB.

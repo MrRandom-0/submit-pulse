@@ -26,6 +26,9 @@ const ROLE_BADGE: Record<WorkspaceRole, "success" | "info" | "neutral" | "warnin
 export default function TeamPage() {
   const actor = FIXTURE_ACTOR;
   const canInvite = can(actor, "member:invite");
+  // Kept: the invite button is currently gated via <PermissionGate>; this
+  // direct check stays for the planned invite-flow wiring.
+  void canInvite;
   const canUpdateRole = can(actor, "member:update_role");
   const canRemove = can(actor, "member:remove");
 

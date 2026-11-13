@@ -52,6 +52,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies();
   const storedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value ?? "";
   const codeVerifier = cookieStore.get(PKCE_COOKIE)?.value ?? "";
+  // Kept: consumed by the token exchange once a provider is registered
+  // (see the INCOMPLETE note below); read now so the PKCE cookie contract
+  // stays pinned. Deliberately not wired yet.
+  void codeVerifier;
 
   /**
    * SECURITY: Validate state before doing anything else.

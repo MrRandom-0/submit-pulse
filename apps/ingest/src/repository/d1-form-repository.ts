@@ -22,7 +22,12 @@ import type {
 } from "../types.js";
 
 export class D1FormRepository implements FormRepository {
-  constructor(private readonly db: D1Database) {}
+  constructor(private readonly db: D1Database) {
+    // Kept: every query in this class is stubbed (INCOMPLETE) until the D1
+    // binding is wired; the binding is accepted and stored now so the
+    // construction contract already matches deployment.
+    void this.db;
+  }
 
   // INCOMPLETE
   async findByPublicId(_publicId: string): Promise<FormRow | null> {
