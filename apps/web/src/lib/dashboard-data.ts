@@ -48,6 +48,13 @@ export interface FormDetail extends FormSummary {
   maxBodyBytes: number;
   fileUploadsEnabled: boolean;
   successRedirectUrl: string | null;
+  /**
+   * Message shown after a successful submit when no redirect is configured.
+   * Consumed by the embed components (the `successMessage` prop in
+   * @submitpulse/react); null means the component default is used. There is
+   * no forms-table column for this yet — fixture-only in the view model.
+   */
+  successMessage: string | null;
   retentionDaysOverride: number | null;
   updatedAt: Date;
   fields: FormFieldSummary[];
@@ -241,6 +248,7 @@ const FIXTURE_FORMS: FormDetail[] = [
     maxBodyBytes: 1_048_576,
     fileUploadsEnabled: false,
     successRedirectUrl: "https://acme.example.com/thank-you",
+    successMessage: "Thanks for reaching out — we usually reply within one business day.",
     retentionDaysOverride: null,
     createdAt: daysAgo(42),
     updatedAt: daysAgo(2),
@@ -272,6 +280,7 @@ const FIXTURE_FORMS: FormDetail[] = [
     maxBodyBytes: 1_048_576,
     fileUploadsEnabled: false,
     successRedirectUrl: null,
+    successMessage: null,
     retentionDaysOverride: null,
     createdAt: daysAgo(90),
     updatedAt: daysAgo(1),
@@ -300,6 +309,7 @@ const FIXTURE_FORMS: FormDetail[] = [
     maxBodyBytes: 26_214_400,
     fileUploadsEnabled: true,
     successRedirectUrl: "https://acme.example.com/careers/applied",
+    successMessage: "Application received. We will be in touch if there is a fit.",
     retentionDaysOverride: 365,
     createdAt: daysAgo(14),
     updatedAt: hoursAgo(6),
@@ -330,6 +340,7 @@ const FIXTURE_FORMS: FormDetail[] = [
     maxBodyBytes: 1_048_576,
     fileUploadsEnabled: false,
     successRedirectUrl: null,
+    successMessage: null,
     retentionDaysOverride: null,
     createdAt: daysAgo(30),
     updatedAt: daysAgo(7),
@@ -499,6 +510,122 @@ const FIXTURE_ACTIVITY: ActivityEvent[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Form notification settings (mirrors email_destinations in the schema)
+// ---------------------------------------------------------------------------
+
+export interface EmailDestinationSummary {
+  id: string;
+  email: string;
+  /** Human-readable label ("Sales team", "Support alias"); null = none. */
+  label: string | null;
+  /** True once the address has been confirmed via the verification flow. */
+  verified: boolean;
+  enabled: boolean;
+  /** Field whose value becomes the Reply-To header; null = no reply-to. */
+  replyToFieldName: string | null;
+}
+
+export interface FormNotificationSettings {
+  /** Master switch — email the destinations on every non-spam submission. */
+  notifyOnSubmission: boolean;
+  destinations: EmailDestinationSummary[];
+}
+
+// ---------------------------------------------------------------------------
+// Form spam settings (rule kinds mirror apps/ingest spam-rules.ts)
+// ---------------------------------------------------------------------------
+
+/** How aggressively borderline scores are treated at ingest. */
+export type SpamSensitivity = "low" | "balanced" | "strict";
+
+export type SpamRuleKind =
+  | "blocklist_term"
+  | "blocklist_email"
+  | "blocklist_ip"
+  | "allowlist_email"
+  | "regex";
+
+export interface SpamRuleSummary {
+  id: string;
+  kind: SpamRuleKind;
+  /** Field the rule applies to; null = all fields. */
+  targetField: string | null;
+  pattern: string;
+  /** Score contribution when matched; negative for allowlist rules. */
+  weight: number;
+  enabled: boolean;
+}
+
+export interface FormSpamSettings {
+  sensitivity: SpamSensitivity;
+  /** Reject addresses from known disposable / throwaway email providers. */
+  blockDisposableEmails: boolean;
+  /** Max submissions accepted per IP per minute; null = plan default. */
+  rateLimitPerMinute: number | null;
+  rules: SpamRuleSummary[];
+}
+
+const FIXTURE_NOTIFICATIONS: Record<string, FormNotificationSettings> = {
+  "form-001": {
+    notifyOnSubmission: true,
+    destinations: [
+      { id: "ed-1", email: "team@acme.example.com", label: "Team inbox", verified: true, enabled: true, replyToFieldName: "email" },
+      { id: "ed-2", email: "alerts@acme.example.com", label: null, verified: false, enabled: true, replyToFieldName: null },
+    ],
+  },
+  "form-002": {
+    notifyOnSubmission: true,
+    destinations: [
+      { id: "ed-3", email: "newsletter@acme.example.com", label: "Marketing", verified: true, enabled: true, replyToFieldName: null },
+    ],
+  },
+  "form-003": {
+    notifyOnSubmission: true,
+    destinations: [
+      { id: "ed-4", email: "hiring@acme.example.com", label: "Hiring team", verified: true, enabled: true, replyToFieldName: "email" },
+    ],
+  },
+  "form-004": {
+    notifyOnSubmission: false,
+    destinations: [],
+  },
+};
+
+const FIXTURE_SPAM: Record<string, FormSpamSettings> = {
+  "form-001": {
+    sensitivity: "balanced",
+    blockDisposableEmails: true,
+    rateLimitPerMinute: 30,
+    rules: [
+      { id: "sr-1", kind: "blocklist_term", targetField: null, pattern: "crypto giveaway", weight: 0.6, enabled: true },
+      { id: "sr-2", kind: "blocklist_email", targetField: "email", pattern: "spam-network.example", weight: 0.8, enabled: true },
+      { id: "sr-3", kind: "allowlist_email", targetField: "email", pattern: "partner.example.com", weight: -0.5, enabled: true },
+      { id: "sr-4", kind: "regex", targetField: "message", pattern: "(https?://\\S+){3,}", weight: 0.4, enabled: false },
+    ],
+  },
+  "form-002": {
+    sensitivity: "strict",
+    blockDisposableEmails: true,
+    rateLimitPerMinute: 60,
+    rules: [
+      { id: "sr-5", kind: "blocklist_term", targetField: null, pattern: "free money", weight: 0.7, enabled: true },
+    ],
+  },
+  "form-003": {
+    sensitivity: "balanced",
+    blockDisposableEmails: false,
+    rateLimitPerMinute: null,
+    rules: [],
+  },
+  "form-004": {
+    sensitivity: "low",
+    blockDisposableEmails: false,
+    rateLimitPerMinute: null,
+    rules: [],
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Public async fixture functions
 // ---------------------------------------------------------------------------
 
@@ -538,6 +665,32 @@ export async function listForms(): Promise<FormSummary[]> {
 /** Fixture: single form detail. */
 export async function getForm(id: string): Promise<FormDetail | null> {
   return FIXTURE_FORMS.find((f) => f.id === id) ?? null;
+}
+
+/** Fixture: email notification settings for a form. */
+export async function getFormNotificationSettings(
+  formId: string,
+): Promise<FormNotificationSettings> {
+  return (
+    FIXTURE_NOTIFICATIONS[formId] ?? {
+      notifyOnSubmission: false,
+      destinations: [],
+    }
+  );
+}
+
+/** Fixture: spam protection settings for a form. */
+export async function getFormSpamSettings(
+  formId: string,
+): Promise<FormSpamSettings> {
+  return (
+    FIXTURE_SPAM[formId] ?? {
+      sensitivity: "balanced",
+      blockDisposableEmails: false,
+      rateLimitPerMinute: null,
+      rules: [],
+    }
+  );
 }
 
 /** Fixture: paginated submission list with optional filters. */
