@@ -20,25 +20,22 @@ Tagline: "Forms that never fail silently."
 
 ## Current status
 
-**First verification pass completed 2026-11-12** (Node 24, pnpm 10.34.5): dependencies install cleanly (`pnpm-lock.yaml` is now committed), and typecheck, lint, unit tests, and the web build have all been run for the first time. Results below are observed, not aspirational. **No database has been provisioned. No external credentials exist. The product is not running anywhere.**
+**Verification passes completed 2026-11-12 and 2026-11-13** (Node 24, pnpm 10.34.5): dependencies install cleanly (`pnpm-lock.yaml` is committed and in sync), and typecheck, lint, unit tests, and the web build have all been run and re-run. Results below are observed, not aspirational. **No database has been provisioned. No external credentials exist. The product is not running anywhere.**
 
 Verification results:
 
-- **Install:** `pnpm install` completes for all 20 workspace projects.
-- **Typecheck:** 12 of 20 packages typecheck clean. **36 errors remain** across 8 packages (web 22, billing 6, ingest 3, and 1 each in auth, mcp, testing, ui, worker). Down from 256 errors at first run; the remaining ones are per-site code issues, not configuration.
-- **Lint:** ESLint did not exist in this repo at all (no binary, no config); a shared flat config now lives at `eslint.config.mjs`. **16 of 17 lint tasks pass.** `apps/web` fails on exactly 3 unused variables, each of which marks logic that is computed but never wired in (see Known issues) — they were left in place deliberately rather than deleted to silence the linter.
-- **Unit tests:** 211 tests run, **210 pass, 1 fails**. The failure is a genuine semantic disagreement (see Known issues). The billing and config test suites (77 tests) previously never ran — they had test files but no test script; they are wired now and pass. `apps/web` has **zero unit tests**; its `e2e/` Playwright specs are `test.fixme()` stubs and have still never been executed (browsers not installed). The k6 load-test scripts remain authored intent only.
-- **Build:** Only `apps/web` has a build script (every package is consumed as TypeScript source). Webpack compilation **succeeds**; `next build` then stops at its lint gate on the same 3 variables above, before reaching its type-check gate. The production build has not yet completed end to end.
-- **CI:** `.github/workflows/ci.yml` runs install + typecheck + lint + test on push/PR. It is expected to be red until the remaining items below are resolved — that is the point of the baseline.
+- **Install:** `pnpm install` completes for all 20 workspace projects, including with `--frozen-lockfile` from a clean tree (verified 2026-11-13).
+- **Typecheck:** **0 errors** — all 20 packages typecheck clean (2026-11-13). Down from 256 errors at first run; the per-site fixes are itemised in the git history (contract catch-ups, `exactOptionalPropertyTypes` sites, billing webhook casts via a single verified boundary, typed-routes links resolved by building the five form subpages).
+- **Lint:** **17 of 17 tasks pass** (2026-11-13). The shared flat config lives at `eslint.config.mjs`. Three variables that mark computed-but-unwired logic (`codeVerifier`, `canManage`, `canInvite`) are kept deliberately and referenced explicitly with explanatory comments rather than deleted — the logic is still unwired (see Known issues), but it no longer blocks the linter.
+- **Unit tests:** 211 tests run, **210 pass, 1 fails**. The failure is a genuine semantic disagreement (see Known issues) awaiting the owner's decision. The billing and config test suites (77 tests) previously never ran — they had test files but no test script; they are wired now and pass. `apps/web` has **zero unit tests**; its `e2e/` Playwright specs are `test.fixme()` stubs and have still never been executed (browsers not installed). The k6 load-test scripts remain authored intent only.
+- **Build:** Only `apps/web` has a build script (every package is consumed as TypeScript source). The production build now **completes end to end** (85/85 static pages, 2026-11-13) after two root-cause fixes: `Button` in `asChild` mode passed two children to Radix `Slot` (which accepts exactly one), and the login / reset-password-confirm pages used `useSearchParams()` without a Suspense boundary.
+- **CI:** `.github/workflows/ci.yml` runs install + typecheck + lint + test on push/PR. As of 2026-11-13 it passes install, typecheck and lint, and is red only at the test step for the single origin-semantics failure below.
 
-Known issues found by the first verification pass:
+Known issues:
 
-- **Origin allowlist semantics conflict (the 1 failing test):** `packages/security/src/origin.ts` and its documentation say an `includeSubdomains` entry still matches its own base host exactly; the test `rejects wildcard.io itself when only the sub entry has includeSubdomains` in `apps/ingest/src/__tests__/origin.test.ts` asserts the opposite. One of them must change; this is a product decision, so both were left untouched.
-- **Unwired OAuth PKCE:** `apps/web/src/app/(auth)/auth/callback/route.ts` reads the `codeVerifier` from the PKCE cookie but never passes it to the token exchange (the file's own comment describes the intended call). This is the largest single reason web lint stays red.
-- **Unwired permission gates:** the integrations and team pages compute `canManage` / `canInvite` permission checks but never use them to gate the UI.
-- **Undefined name:** `apps/web/src/app/(admin)/admin/workspaces/WorkspaceActions.tsx` references `FIXTURE_OPS_EMAIL`, which is not defined anywhere (2 type errors).
-- **Unsafe casts in billing:** `packages/billing/src/webhook-handler.ts` casts `Record<string, unknown>` directly to Stripe object types in 5 places (TS2352); they need `unknown` intermediates and runtime shape checks.
-- **`exactOptionalPropertyTypes` friction:** several call sites pass explicit `undefined` to optional properties (auth, ingest, mcp, testing, web layouts/CodeBlock). Each needs a per-site decision: omit the key, or widen the target type.
+- **Origin allowlist semantics conflict (the 1 failing test):** `packages/security/src/origin.ts` and its documentation say an `includeSubdomains` entry still matches its own base host exactly; the test `rejects wildcard.io itself when only the sub entry has includeSubdomains` in `apps/ingest/src/__tests__/origin.test.ts` asserts the opposite. One of them must change; this is a product decision for the owner, so both remain untouched.
+- **Unwired OAuth PKCE:** `apps/web/src/app/(auth)/auth/callback/route.ts` reads the `codeVerifier` from the PKCE cookie but never passes it to the token exchange (the file's own comment describes the intended call). Kept and explicitly referenced so the gap stays visible.
+- **Unwired permission gates:** the integrations and team pages compute `canManage` / `canInvite` permission checks but never use them to gate the UI. Kept and explicitly referenced, same as above.
 
 Still true from the original assessment:
 
