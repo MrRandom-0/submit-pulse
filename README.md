@@ -6,6 +6,18 @@ Tagline: "Forms that never fail silently."
 
 ---
 
+## Screenshots
+
+![Submit Pulse marketing landing page](docs/screenshots/landing.png)
+
+*The marketing site — forms that never fail silently.*
+
+![Submit Pulse form fields editor](docs/screenshots/fields-edit.png)
+
+*The dashboard fields editor — submissions are validated against this field list, and schema drift is detected when a payload no longer matches it.*
+
+---
+
 ## Current status
 
 **First verification pass completed 2026-11-12** (Node 24, pnpm 10.34.5): dependencies install cleanly (`pnpm-lock.yaml` is now committed), and typecheck, lint, unit tests, and the web build have all been run for the first time. Results below are observed, not aspirational. **No database has been provisioned. No external credentials exist. The product is not running anywhere.**
