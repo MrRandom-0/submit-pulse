@@ -70,13 +70,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading ? true : undefined}
         {...props}
       >
-        {loading && (
-          <Spinner
-            size={size === "lg" ? "md" : "sm"}
-            aria-hidden="true"
-          />
+        {asChild ? (
+          // Radix Slot contract: with `asChild`, the Slot must receive
+          // exactly one React element child so it can clone it with the
+          // merged props. Rendering the loading spinner as a sibling
+          // expression here hands Slot an array of two children
+          // (`false | <Spinner/>` + the child), which Slot rejects with
+          // "Slot failed to slot onto its children". So with `asChild`
+          // the child element is passed through untouched; the spinner
+          // only exists in the real <button> rendering, where there is
+          // a host element to contain it.
+          children
+        ) : (
+          <>
+            {loading && (
+              <Spinner
+                size={size === "lg" ? "md" : "sm"}
+                aria-hidden="true"
+              />
+            )}
+            {children}
+          </>
         )}
-        {children}
       </Comp>
     );
   }
