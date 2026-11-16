@@ -15,6 +15,6 @@
   },
   "devDependencies": {
     "@submitpulse/analytics": "workspace:*",
-    "vitest": "^2.1.8"
+    "vitest": "^5.1.0"
   }
 }
